@@ -1,15 +1,12 @@
 sudo: true
 language: cpp
-dist: xenial
+dist: bionic
 
 compiler:
   - clang
   - gcc
 os:
   - linux
-
-before_install:
-  - pyenv global 3.7
 
 script:
   - mkdir build
