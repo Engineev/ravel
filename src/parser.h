@@ -2,8 +2,8 @@
 
 #include <optional>
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "instructions.h"
 
@@ -36,10 +36,10 @@ std::string opType2Name(inst::Instruction::OpType op);
 
 inst::Instruction::OpType name2OpType(std::string name);
 
-std::size_t regName2regNumber(const std::string & name);
+std::size_t regName2regNumber(const std::string &name);
 
-std::pair<std::size_t, int> parseBaseOffset(const std::string & str);
+std::pair<std::size_t, int> parseBaseOffset(const std::string &str);
 
-std::string toString(const std::shared_ptr<inst::Instruction> & inst);
+std::string toString(const std::shared_ptr<inst::Instruction> &inst);
 
 } // namespace ravel

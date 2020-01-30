@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
+#include <cstddef>
 #include <functional>
 #include <iostream>
 #include <string>
@@ -80,7 +81,7 @@ private:
       auto tokens = split(line, " ,\t");
 
       if (isDirective(line)) {
-        if (tokens.at(0) !=  ".align")
+        if (tokens.at(0) != ".align")
           continue;
         auto alignment = std::stoi(tokens.at(1));
         storage.resize(roundUp(storage.size(), alignment));
@@ -104,7 +105,7 @@ private:
       }
       // handle instructions
       std::string opName = tokens.at(0);
-      if (tokens.back().front() == '.')  {  // rename the local label
+      if (tokens.back().front() == '.') { // rename the local label
         assert(!lastLabel.global.empty());
         tokens.back() = "#" + lastLabel.global + "#" + tokens.back().substr(1);
         std::string newLine = tokens.at(0) + " ";
@@ -213,10 +214,10 @@ private:
     }
 
     static const std::unordered_map<std::string, std::string> branchPair = {
-        {"bgt", "blt"}, {"ble", "bge"}, {"bgtu", "bltu"}, {"bleu", "bgeu"}
-    };
+        {"bgt", "blt"}, {"ble", "bge"}, {"bgtu", "bltu"}, {"bleu", "bgeu"}};
     if (auto op = get(branchPair, tokens[0])) {
-      return {op.value() + " " + tokens.at(2) + "," + tokens.at(1) + "," + tokens.at(3)};
+      return {op.value() + " " + tokens.at(2) + "," + tokens.at(1) + "," +
+              tokens.at(3)};
     }
 
     if (tokens[0] == "j") {
@@ -235,7 +236,7 @@ private:
       return {"jalr x0, 0(x1)"s};
     }
     if (tokens[0] == "call" || tokens[0] == "tail") {
-      assert(false);  // TODO
+      assert(false); // TODO
       std::string auipc, jalr;
       if (std::optional<int> offsetOpt = getOffset(tokens.at(1))) {
         auto offset = offsetOpt.value();

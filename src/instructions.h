@@ -58,14 +58,10 @@ namespace ravel::inst {
 class ImmConstruction : public Instruction {
 public:
   ImmConstruction(OpType op, std::size_t dest, int imm)
-    : Instruction(op), dest(dest), imm(imm) {}
+      : Instruction(op), dest(dest), imm(imm) {}
 
-  size_t getDest() const {
-    return dest;
-  }
-  int getImm() const {
-    return imm;
-  }
+  size_t getDest() const { return dest; }
+  int getImm() const { return imm; }
 
 private:
   std::size_t dest;
@@ -75,17 +71,11 @@ private:
 class ArithRegReg : public Instruction {
 public:
   ArithRegReg(OpType op, std::size_t dest, std::size_t src1, std::size_t src2)
-    : Instruction(op), dest(dest), src1(src1), src2(src2) {}
+      : Instruction(op), dest(dest), src1(src1), src2(src2) {}
 
-  size_t getDest() const {
-    return dest;
-  }
-  size_t getSrc1() const {
-    return src1;
-  }
-  size_t getSrc2() const {
-    return src2;
-  }
+  size_t getDest() const { return dest; }
+  size_t getSrc1() const { return src1; }
+  size_t getSrc2() const { return src2; }
 
 private:
   std::size_t dest, src1, src2;
@@ -94,19 +84,13 @@ private:
 class ArithRegImm : public Instruction {
 public:
   ArithRegImm(OpType type, size_t dest, size_t src, int imm)
-    : Instruction(type), dest(dest), src(src), imm(imm) {}
+      : Instruction(type), dest(dest), src(src), imm(imm) {}
 
-  size_t getDest() const {
-    return dest;
-  }
+  size_t getDest() const { return dest; }
 
-  size_t getSrc() const {
-    return src;
-  }
+  size_t getSrc() const { return src; }
 
-  int getImm() const {
-    return imm;
-  }
+  int getImm() const { return imm; }
 
 private:
   std::size_t dest, src;
@@ -116,19 +100,13 @@ private:
 class MemAccess : public Instruction {
 public:
   MemAccess(OpType type, std::size_t reg, std::size_t base, int offset)
-    : Instruction(type), reg(reg), base(base), offset(offset) {}
+      : Instruction(type), reg(reg), base(base), offset(offset) {}
 
-  size_t getReg() const {
-    return reg;
-  }
+  size_t getReg() const { return reg; }
 
-  size_t getBase() const {
-    return base;
-  }
+  size_t getBase() const { return base; }
 
-  int getOffset() const {
-    return offset;
-  }
+  int getOffset() const { return offset; }
 
 private:
   std::size_t reg, base;
@@ -138,15 +116,10 @@ private:
 class JumpLink : public Instruction {
 public:
   JumpLink(std::size_t dest, int offset)
-    : Instruction(JAL), dest(dest), offset(offset)
-  {}
+      : Instruction(JAL), dest(dest), offset(offset) {}
 
-  size_t getDest() const {
-    return dest;
-  }
-  int getOffset() const {
-    return offset;
-  }
+  size_t getDest() const { return dest; }
+  int getOffset() const { return offset; }
 
 private:
   std::size_t dest;
@@ -156,17 +129,11 @@ private:
 class JumpLinkReg : public Instruction {
 public:
   JumpLinkReg(std::size_t dest, std::size_t base, int offset)
-    : Instruction(JALR), dest(dest), base(base), offset(offset) {}
+      : Instruction(JALR), dest(dest), base(base), offset(offset) {}
 
-  size_t getDest() const {
-    return dest;
-  }
-  size_t getBase() const {
-    return base;
-  }
-  int getOffset() const {
-    return offset;
-  }
+  size_t getDest() const { return dest; }
+  size_t getBase() const { return base; }
+  int getOffset() const { return offset; }
 
 private:
   std::size_t dest;
@@ -177,24 +144,18 @@ private:
 class Branch : public Instruction {
 public:
   Branch(OpType op, std::size_t src1, std::size_t src2, int offset)
-    : Instruction(op), src1(src1), src2(src2), offset(offset) {}
+      : Instruction(op), src1(src1), src2(src2), offset(offset) {}
 
-  size_t getSrc1() const {
-    return src1;
-  }
-  size_t getSrc2() const {
-    return src2;
-  }
-  int getOffset() const {
-    return offset;
-  }
+  size_t getSrc1() const { return src1; }
+  size_t getSrc2() const { return src2; }
+  int getOffset() const { return offset; }
 
 private:
   std::size_t src1, src2;
   int offset;
 };
 
-}
+} // namespace ravel::inst
 
 namespace std {
 template <> struct hash<ravel::inst::Instruction::Id> {
@@ -203,4 +164,3 @@ template <> struct hash<ravel::inst::Instruction::Id> {
   std::size_t operator()(const Key &k) const { return std::hash<int>()(k.val); }
 };
 } // namespace std
-

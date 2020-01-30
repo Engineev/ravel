@@ -2,10 +2,7 @@ set(SOURCE main.cpp
   assembler.cpp
   assembler.h
   container_utils.h
-  instructions.cpp
   instructions.h
-  interpreter.cpp
-  interpreter.h
   object_file.h
   parser.cpp
   parser.h

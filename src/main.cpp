@@ -1,9 +1,9 @@
+#include <fstream>
 #include <iostream>
 #include <unordered_map>
-#include <fstream>
 
-#include "instructions.h"
 #include "assembler.h"
+#include "instructions.h"
 
 int main() {
   using namespace ravel;

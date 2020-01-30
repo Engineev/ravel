@@ -138,7 +138,7 @@ std::string opType2Name(inst::Instruction::OpType op) {
       {inst::Instruction::AND, "AND"s},
   };
   auto name = mp.at(op);
-  for (auto & c : name)
+  for (auto &c : name)
     c = tolower(c);
   return name;
 }
@@ -206,8 +206,7 @@ parseInst(const std::vector<std::string> &tokens) {
   }
 
   static std::unordered_set<std::string> arithRegReg = {
-      "add", "sub", "sll", "slt", "sltu", "xor", "srl", "sra", "or", "and"
-  };
+      "add", "sub", "sll", "slt", "sltu", "xor", "srl", "sra", "or", "and"};
   if (isIn(arithRegReg, tokens[0])) {
     auto dest = regName2regNumber(tokens.at(1));
     auto src1 = regName2regNumber(tokens.at(2));
@@ -216,8 +215,7 @@ parseInst(const std::vector<std::string> &tokens) {
   }
 
   static std::unordered_set<std::string> arithRegImmInsts = {
-      "addi", "slti", "sltiu", "xori", "ori", "andi", "slli", "srli", "srai"
-  };
+      "addi", "slti", "sltiu", "xori", "ori", "andi", "slli", "srli", "srai"};
   if (isIn(arithRegImmInsts, tokens.at(0))) {
     auto dest = regName2regNumber(tokens.at(1));
     auto src = regName2regNumber(tokens.at(2));
@@ -226,8 +224,7 @@ parseInst(const std::vector<std::string> &tokens) {
   }
 
   static std::unordered_set<std::string> memAccessInsts = {
-      "lb", "lh", "lw", "lbu", "lhu", "sb", "sh", "sw"
-  };
+      "lb", "lh", "lw", "lbu", "lhu", "sb", "sh", "sw"};
   if (isIn(memAccessInsts, tokens[0])) {
     auto reg = regName2regNumber(tokens.at(1));
     auto [base, offset] = parseBaseOffset(tokens.at(2));
@@ -246,9 +243,8 @@ parseInst(const std::vector<std::string> &tokens) {
     return std::make_shared<inst::JumpLinkReg>(dest, base, offset);
   }
 
-  static std::unordered_set<std::string> branchInsts = {
-      "beq", "bne", "blt", "bge", "bltu", "bgeu"
-  };
+  static std::unordered_set<std::string> branchInsts = {"beq", "bne",  "blt",
+                                                        "bge", "bltu", "bgeu"};
   if (isIn(branchInsts, tokens[0])) {
     auto src1 = regName2regNumber(tokens.at(1));
     auto src2 = regName2regNumber(tokens.at(2));
@@ -260,14 +256,13 @@ parseInst(const std::vector<std::string> &tokens) {
 
 std::size_t regName2regNumber(const std::string &name) {
   if (name.at(0) == 'x') {
-    return (std::size_t) std::stoi(name.substr(1));
+    return (std::size_t)std::stoi(name.substr(1));
   }
 
   static std::vector<std::string> names = {
-      "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", "s0", "s1",
-      "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "s2", "s3",
-      "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
-  };
+      "zero", "ra", "sp", "gp", "tp",  "t0",  "t1", "t2", "s0", "s1", "a0",
+      "a1",   "a2", "a3", "a4", "a5",  "a6",  "a7", "s2", "s3", "s4", "s5",
+      "s6",   "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"};
   assert(names.size() == 32);
   for (std::size_t i = 0; i < names.size(); ++i) {
     if (names[i] == name)
@@ -282,7 +277,7 @@ std::pair<std::size_t, int> parseBaseOffset(const std::string &str) {
   std::stringstream ss(str);
   int offset;
   ss >> offset;
-  auto ch = (char) ss.get();
+  auto ch = (char)ss.get();
   assert(ch == '(');
   std::string regName;
   ss >> regName;
@@ -291,6 +286,5 @@ std::pair<std::size_t, int> parseBaseOffset(const std::string &str) {
   auto reg = regName2regNumber(regName);
   return {reg, offset};
 }
-
 
 } // namespace ravel

@@ -4,6 +4,6 @@
 
 namespace ravel {
 
-void assemble(const std::string & src);
+void assemble(const std::string &src);
 
 }
