@@ -14,6 +14,7 @@
 
 #include "container_utils.h"
 #include "instructions.h"
+#include "object_file.h"
 #include "parser.h"
 
 namespace ravel {
@@ -55,6 +56,28 @@ template <> struct hash<ravel::LabelName> {
 
 namespace ravel {
 namespace {
+// Here, we describe the implementation of the assembler. For details about
+// the resulted [ObjectFile], see object_file.h.
+//     An [Assembler] takes a vector of string where each string represents a
+// line in the source file. We assume each line contains either a directive, a
+// label, or and instruction.
+//     In brief, the assembling process consists of two passes. In the first
+// pass, some preliminary works such as allocating spaces and recoding labels
+// are done. In the second pass, instructions are parsed.
+// The first pass: (cf. void prepare();)
+// * [storage] is resized properly and .align are handled. (Other directives
+//   are ignored.)
+// * Labels are handled. For a local label ".L1:", it will be renamed to
+//   "#Global#L1:" where "Global" is the corresponding global label. Note that
+//   local labels appearing in instructions are also renamed. After that, the
+//   [labelName2Position] and [globalSymbols] are constructed where
+//   [labelName2Position] records the position of each label in [storage] and
+//   [globalSymbols] records the global symbols. By default, all non-local
+//   symbols are global.
+// * Also, we initialize all bytes in [storage] to 0xff instead of 0, which
+//   might be helpful in recognizing accessing to uninitialized data.
+// The second pass: (cf. void parseCurrentLine(LineIter iter);)
+// TODO
 class Assembler {
   using LineIter = std::vector<std::string>::const_iterator;
 
@@ -62,17 +85,25 @@ public:
   explicit Assembler(std::vector<std::string> src)
       : src(std::move(src)), curSection(Section::ERROR) {}
 
-  void assemble() {
+  ObjectFile assemble() {
     prepare();
     for (auto iter = src.begin(); iter != src.end(); ++iter) {
       parseCurrentLine(iter);
     }
+    storage.resize(roundUp(storage.size(), 16));
+
+    std::unordered_map<std::string, std::size_t> globalSymbol2Pos;
+    for (auto &sym : globalSymbols)
+      globalSymbol2Pos.emplace(sym, labelName2Position.at({sym, ""}));
+    return {std::move(storage), std::move(instsAndPos), globalSymbol2Pos,
+            std::move(containsExternalLabel)};
   }
 
 private:
   // Compute labelName2Position
   // For each local label, including the one appeared in instructions, rename it
   //   as #GlobalLabel#LocalLabel:
+  // Add global labels
   // Allocate storage
   void prepare() {
     LabelName lastLabel;
@@ -99,6 +130,7 @@ private:
         } else { // global label
           lastLabel.global = label;
           lastLabel.local = "";
+          globalSymbols.emplace(label);
         }
         labelName2Position.emplace(lastLabel, storage.size());
         continue;
@@ -161,42 +193,84 @@ private:
   }
 
   // If [str] is a number, then return it.
-  // If [str] is a non-external label, then compute the offset.
+  // If [str] is a non-external label, then compute the offset if possible
   std::optional<int> getOffset(std::string str) const {
     if (std::isdigit(str.front())) {
       return std::stoi(str, nullptr, 0);
     }
     // is a label
     if (str.front() != '#') { // global
-      return get(labelName2Position, LabelName(str, ""));
+      auto pos = get(labelName2Position, LabelName(str, ""));
+      if (!pos)
+        return std::nullopt;
+      return (std::int64_t)pos.value() - (std::int64_t)curStoragePos;
     }
     // local
     auto labels = split(str, "#");
     assert(labels.size() == 2);
-    return labelName2Position.at(LabelName(labels[0], labels[1]));
+    auto pos = labelName2Position.at(LabelName(labels[0], labels[1]));
+    return (std::int64_t)pos - (std::int64_t)curStoragePos;
   }
 
   void handleInstruction(const std::vector<std::string> &tokens,
-                         std::size_t linePos) {
-    // TODO: pseudo instructions
+                         std::size_t linePos /* to be removed */) {
     assert(!tokens.empty());
 
-    // handle pseudo insts
+    // handle pseudo instructions
+    if (tokens[0] == "call") {
+      handleCall(tokens);
+      return;
+    }
     if (auto insts = decomposePseudoInst(tokens); !insts.empty()) {
-      assert(insts.size() == 1); // TODO: call, tail, li
-      handleNonPseudoInst(split(insts[0], " \t,"));
+      assert(insts.size() == 1); // TODO: tail, li
+      handleNonPseudoInst(insts[0]);
       return;
     }
     handleNonPseudoInst(tokens);
   }
 
+  void handleCall(const std::vector<std::string> &tokens) {
+    using namespace std::string_literals;
+    assert(tokens.size() == 2);
+    assert(tokens[0] == "call");
+    std::string auipc, jalr;
+    auipc = "auipc x6, ";
+    jalr = "jalr "s + (tokens[0] == "call" ? "x1"s : "x0"s) + ", ";
+
+    auto funcName = tokens.at(1);
+
+    auto offsetOpt = getOffset(funcName);
+    if (!offsetOpt) { // an external function
+      auipc += "0";
+      jalr += "0(x6)";
+      handleNonPseudoInst(auipc);
+      containsExternalLabel.emplace(instsAndPos.back().first->getId(),
+                                    funcName);
+      handleNonPseudoInst(jalr);
+      containsExternalLabel.emplace(instsAndPos.back().first->getId(),
+                                    funcName);
+      return;
+    }
+    // an interval function
+    auto offset = offsetOpt.value();
+    auipc += std::to_string(offset >> 12);
+    jalr += std::to_string(offset & 0xfff) + "(x6)";
+    handleNonPseudoInst(auipc);
+    handleNonPseudoInst(jalr);
+  }
+
+  void handleNonPseudoInst(const std::string &inst) {
+    handleNonPseudoInst(split(inst, " \t,"));
+  }
+
   void handleNonPseudoInst(const std::vector<std::string> &tokens) {
     auto inst = parseInst(tokens);
-    *(std::uint32_t *)(storage.data() + curStoragePos) = text.size();
-    text.emplace_back(inst);
+    *(std::uint32_t *)(storage.data() + curStoragePos) = instsAndPos.size();
+    instsAndPos.emplace_back(inst, curStoragePos);
     curStoragePos += 4;
   }
 
+  // Note: call and tail are handled in a different way
   std::vector<std::string>
   decomposePseudoInst(const std::vector<std::string> &tokens) const {
     using namespace std::string_literals;
@@ -236,19 +310,7 @@ private:
       return {"jalr x0, 0(x1)"s};
     }
     if (tokens[0] == "call" || tokens[0] == "tail") {
-      assert(false); // TODO
-      std::string auipc, jalr;
-      if (std::optional<int> offsetOpt = getOffset(tokens.at(1))) {
-        auto offset = offsetOpt.value();
-        auipc = "auipc x6, " + std::to_string(offset >> 12);
-        jalr = "jalr "s + (tokens[0] == "call" ? "x1"s : "x0"s) + ", x6, " +
-               std::to_string(offset & 0xfff);
-      } else {
-        auipc = "auipc x6, " + tokens.at(1);
-        jalr = "jalr "s + (tokens[0] == "call" ? "x1"s : "x0"s) + ", x6, " +
-               tokens.at(1);
-      }
-      return {auipc, jalr};
+      return {"", ""}; // placeholders
     }
 
     return {};
@@ -261,13 +323,14 @@ private: // current state and intermediate results
 
 private: // final results
   std::vector<std::byte> storage;
-  std::vector<std::shared_ptr<inst::Instruction>> text;
+  std::vector<std::pair<std::shared_ptr<inst::Instruction>, std::size_t>>
+      instsAndPos;
 
   std::unordered_map<LabelName, std::size_t> labelName2Position;
   std::unordered_set<std::string> globalSymbols;
   // When we encounter an instruction which contains an external label, then
   // we add the instruction ID and the label name into this.
-  std::unordered_map<inst::Instruction::Id, LabelName> containsExternalLabel;
+  std::unordered_map<inst::Instruction::Id, std::string> containsExternalLabel;
 };
 
 } // namespace
@@ -276,10 +339,10 @@ private: // final results
 
 namespace ravel {
 
-void assemble(const std::string &src) {
+ObjectFile assemble(const std::string &src) {
   auto lines = preprocess(src);
   Assembler assembler(lines);
-  assembler.assemble();
+  return assembler.assemble();
 }
 
 } // namespace ravel

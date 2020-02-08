@@ -11,12 +11,13 @@ class Instruction {
 public:
   // clang-format off
   enum OpType {
-    LUI, AUIPC,
-    JAL, JALR,
-    BEQ, BNE, BLT, BGE, BLTU, BGEU,
-    LB, LH, LW, LBU, LHU, SB, SH, SW,
-    ADDI, SLTI, SLTIU, XORI, ORI, ANDI, SLLI, SRLI, SRAI,
-    ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND,
+    LUI, AUIPC,  // ImmConstruction
+    JAL,         // JumpLink
+    JALR,        // JumpLinkReg
+    BEQ, BNE, BLT, BGE, BLTU, BGEU,                        // Branch
+    LB, LH, LW, LBU, LHU, SB, SH, SW,                      // MemAccess
+    ADDI, SLTI, SLTIU, XORI, ORI, ANDI, SLLI, SRLI, SRAI,  // ArithRegImm
+    ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND,      // ArithRegReg
     // TODO: fence ...
   };
   // clang-format on

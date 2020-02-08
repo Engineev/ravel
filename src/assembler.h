@@ -2,8 +2,10 @@
 
 #include <string>
 
+#include "object_file.h"
+
 namespace ravel {
 
-void assemble(const std::string &src);
+ObjectFile assemble(const std::string &src);
 
 }
