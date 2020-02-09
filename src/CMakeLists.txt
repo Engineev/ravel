@@ -4,6 +4,8 @@ set(SOURCE main.cpp
   container_utils.h
   instructions.h
   interpretable.h
+  interpreter.cpp
+  interpreter.h
   linker.cpp
   linker.h
   object_file.h
@@ -15,7 +17,7 @@ add_executable(ravel ${SOURCE})
 
 target_compile_features(ravel PRIVATE cxx_std_17)
 if (UNIX)
-#  target_compile_options(ravel PRIVATE -O2 -Wall)
+  target_compile_options(ravel PRIVATE -O2 -Wall)
 endif ()
 
 target_include_directories(ravel PRIVATE ${CMAKE_CURRENT_LIST_DIR})
