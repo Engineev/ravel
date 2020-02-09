@@ -31,7 +31,7 @@ public:
 
     mergeObj(makeStartObj());
     std::size_t start = 0;
-    std::size_t end = 2;
+    std::size_t end = 2 * 4;
 
     for (auto &obj : objects) {
       mergeObj(obj);
@@ -56,7 +56,7 @@ private:
 
     // place the instructions into [objStorage] and build symbol table
     for (auto &[inst, pos] : objInstsAndPos) {
-      *(std::uint32_t *)(objStorage.data() + pos) = objInstsAndPos.size();
+      *(std::uint32_t *)(objStorage.data() + pos) = instsAndPos.size();
       instsAndPos.emplace_back(inst, storage.size() + pos);
     }
     for (auto [label, pos] : obj.getGlobalLabel2Pos()) {
