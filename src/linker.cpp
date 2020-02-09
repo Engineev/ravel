@@ -76,19 +76,18 @@ private:
       if (!isIn(containsUnresolvedSymbol, inst->getId()))
         continue;
       auto symPos = symbolTable.at(containsUnresolvedSymbol.at(inst->getId()));
-      int offset = symPos - pos;
       if (inst->getOp() == inst::Instruction::AUIPC) {
         auto auipc = std::dynamic_pointer_cast<inst::ImmConstruction>(inst);
         assert(auipc);
         inst = std::make_shared<inst::ImmConstruction>(
-            inst::Instruction::AUIPC, auipc->getDest(), offset >> 12);
+            inst::Instruction::AUIPC, auipc->getDest(), symPos >> 12);
         continue;
       }
       if (inst->getOp() == inst::Instruction::JALR) {
         auto jalr = std::dynamic_pointer_cast<inst::JumpLinkReg>(inst);
         assert(jalr);
         inst = std::make_shared<inst::JumpLinkReg>(
-            jalr->getDest(), jalr->getBase(), offset & 0xfff);
+            jalr->getDest(), jalr->getBase(), symPos & 0xfff);
         continue;
       }
       assert(false); // TODO

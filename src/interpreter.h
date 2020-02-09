@@ -14,15 +14,7 @@ public:
   explicit Interpreter(const Interpretable &interpretable)
       : interpretable(interpretable) {}
 
-  void interpret() {
-    load();
-    while (pc != interpretable.getEnd()) {
-      assert(0 <= pc && pc < storage.size());
-      auto instIdx = *(std::uint32_t *)(storage.data() + pc);
-      auto &inst = interpretable.getInsts().at(instIdx);
-      simulate(inst);
-    }
-  }
+  void interpret();
 
   std::uint32_t getReturnCode() const;
 

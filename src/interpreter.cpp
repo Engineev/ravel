@@ -1,6 +1,7 @@
 #include "interpreter.h"
 
 #include <cassert>
+// #include <iostream>
 
 #include "parser.h"
 
@@ -36,7 +37,7 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   if (inst->getOp() == inst::ImmConstruction::AUIPC) {
     auto &p = spc<inst::ImmConstruction>(inst);
     auto offset = (std::uint32_t)p.getImm() & 0xfffff000;
-    pc += offset;
+    regs.at(p.getDest()) = pc + offset;
     return;
   }
 
@@ -203,6 +204,17 @@ void Interpreter::load() {
   storage.resize(MaxStorageSize);
   pc = interpretable.getStart();
   regs.at(regName2regNumber("sp")) = MaxStorageSize;
+}
+
+void Interpreter::interpret() {
+  load();
+  while (pc != interpretable.getEnd()) {
+    assert(0 <= pc && pc < storage.size());
+    auto instIdx = *(std::uint32_t *)(storage.data() + pc);
+    auto &inst = interpretable.getInsts().at(instIdx);
+    // std::cerr << toString(inst) << std::endl;
+    simulate(inst);
+  }
 }
 
 } // namespace ravel
