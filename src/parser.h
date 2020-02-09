@@ -38,6 +38,8 @@ inst::Instruction::OpType name2OpType(std::string name);
 
 std::size_t regName2regNumber(const std::string &name);
 
+std::string regNumber2regName(const std::size_t &num);
+
 std::pair<std::size_t, int> parseBaseOffset(const std::string &str);
 
 std::string toString(const std::shared_ptr<inst::Instruction> &inst);

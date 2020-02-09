@@ -287,4 +287,47 @@ std::pair<std::size_t, int> parseBaseOffset(const std::string &str) {
   return {reg, offset};
 }
 
+std::string toString(const std::shared_ptr<inst::Instruction> &inst) {
+  auto getName = [](std::size_t num) { return regNumber2regName(num); };
+  auto opName = opType2Name(inst->getOp());
+  if (auto p = std::dynamic_pointer_cast<inst::ImmConstruction>(inst)) {
+    return opName + "\t" + getName(p->getDest()) + ", " +
+           std::to_string(p->getImm());
+  }
+  if (auto p = std::dynamic_pointer_cast<inst::ArithRegReg>(inst)) {
+    return opName + "\t" + getName(p->getDest()) + ", " +
+           getName(p->getSrc1()) + ", " + getName(p->getSrc2());
+  }
+  if (auto p = std::dynamic_pointer_cast<inst::ArithRegImm>(inst)) {
+    return opName + "\t" + getName(p->getDest()) + ", " + getName(p->getSrc()) +
+           ", " + std::to_string(p->getImm());
+  }
+  if (auto p = std::dynamic_pointer_cast<inst::MemAccess>(inst)) {
+    return opName + "\t" + getName(p->getReg()) + ", " +
+           std::to_string(p->getOffset()) + "(" + getName(p->getBase()) + ")";
+  }
+  if (auto p = std::dynamic_pointer_cast<inst::JumpLink>(inst)) {
+    return opName + "\t" + getName(p->getDest()) + ", " +
+           std::to_string(p->getOffset());
+  }
+  if (auto p = std::dynamic_pointer_cast<inst::JumpLinkReg>(inst)) {
+    return opName + "\t" + getName(p->getDest()) + ", " +
+           std::to_string(p->getOffset()) + "(" + getName(p->getBase()) + ")";
+  }
+  if (auto p = std::dynamic_pointer_cast<inst::Branch>(inst)) {
+    return opName + "\t" + getName(p->getSrc1()) + ", " +
+           getName(p->getSrc2()) + ", " + std::to_string(p->getOffset());
+  }
+
+  assert(false);
+}
+
+std::string regNumber2regName(const std::size_t &num) {
+  static std::vector<std::string> names = {
+      "zero", "ra", "sp", "gp", "tp",  "t0",  "t1", "t2", "s0", "s1", "a0",
+      "a1",   "a2", "a3", "a4", "a5",  "a6",  "a7", "s2", "s3", "s4", "s5",
+      "s6",   "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"};
+  return names.at(num);
+}
+
 } // namespace ravel
