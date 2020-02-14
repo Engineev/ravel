@@ -37,6 +37,8 @@ bool isDirective(const std::string &str) {
   return words.at(0).at(0) == '.' && words.at(0).back() != ':';
 }
 
+bool isLabel(const std::string &str) { return str.back() == ':'; }
+
 std::optional<std::string> getSectionName(const std::string &line) {
   if (line == ".text" || line == ".data" || line == ".rodata" || line == ".bss")
     return line;
@@ -190,68 +192,6 @@ inst::Instruction::OpType name2OpType(std::string name) {
   }
 
   return mp.at(name);
-}
-
-std::shared_ptr<inst::Instruction>
-parseInst(const std::vector<std::string> &tokens) {
-  const std::size_t DummyOffset = 0;
-  assert(!tokens.empty());
-
-  auto op = name2OpType(tokens[0]);
-
-  if (op == inst::Instruction::LUI || op == inst::Instruction::AUIPC) {
-    auto dest = regName2regNumber(tokens.at(1));
-    auto imm = std::stoi(tokens.at(2));
-    return std::make_shared<inst::ImmConstruction>(op, dest, imm);
-  }
-
-  static std::unordered_set<std::string> arithRegReg = {
-      "add", "sub", "sll", "slt", "sltu", "xor", "srl", "sra", "or", "and"};
-  if (isIn(arithRegReg, tokens[0])) {
-    auto dest = regName2regNumber(tokens.at(1));
-    auto src1 = regName2regNumber(tokens.at(2));
-    auto src2 = regName2regNumber(tokens.at(3));
-    return std::make_shared<inst::ArithRegReg>(op, dest, src1, src2);
-  }
-
-  static std::unordered_set<std::string> arithRegImmInsts = {
-      "addi", "slti", "sltiu", "xori", "ori", "andi", "slli", "srli", "srai"};
-  if (isIn(arithRegImmInsts, tokens.at(0))) {
-    auto dest = regName2regNumber(tokens.at(1));
-    auto src = regName2regNumber(tokens.at(2));
-    auto imm = std::stoi(tokens.at(3), nullptr, 0);
-    return std::make_shared<inst::ArithRegImm>(op, dest, src, imm);
-  }
-
-  static std::unordered_set<std::string> memAccessInsts = {
-      "lb", "lh", "lw", "lbu", "lhu", "sb", "sh", "sw"};
-  if (isIn(memAccessInsts, tokens[0])) {
-    auto reg = regName2regNumber(tokens.at(1));
-    auto [base, offset] = parseBaseOffset(tokens.at(2));
-    return std::make_shared<inst::MemAccess>(op, reg, base, offset);
-  }
-
-  if (op == inst::Instruction::JAL) {
-    auto dest = regName2regNumber(tokens.at(1));
-    auto offset = std::stoi(tokens.at(2));
-    return std::make_shared<inst::JumpLink>(dest, offset);
-  }
-
-  if (op == inst::Instruction::JALR) {
-    auto dest = regName2regNumber(tokens.at(1));
-    auto [base, offset] = parseBaseOffset(tokens.at(2));
-    return std::make_shared<inst::JumpLinkReg>(dest, base, offset);
-  }
-
-  static std::unordered_set<std::string> branchInsts = {"beq", "bne",  "blt",
-                                                        "bge", "bltu", "bgeu"};
-  if (isIn(branchInsts, tokens[0])) {
-    auto src1 = regName2regNumber(tokens.at(1));
-    auto src2 = regName2regNumber(tokens.at(2));
-    return std::make_shared<inst::Branch>(op, src1, src2, DummyOffset);
-  }
-
-  assert(false);
 }
 
 std::size_t regName2regNumber(const std::string &name) {

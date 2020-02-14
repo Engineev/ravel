@@ -22,7 +22,7 @@ namespace {
 struct LabelName {
   LabelName() = default;
   LabelName(std::string global, std::string local)
-      : global(global), local(local) {}
+      : global(std::move(global)), local(std::move(local)) {}
 
   std::string global, local;
 
@@ -67,17 +67,15 @@ namespace {
 // The first pass: (cf. void prepare();)
 // * [storage] is resized properly and .align are handled. (Other directives
 //   are ignored.)
-// * Labels are handled. For a local label ".L1:", it will be renamed to
-//   "#Global#L1:" where "Global" is the corresponding global label. Note that
-//   local labels appearing in instructions are also renamed. After that, the
-//   [labelName2Position] and [globalSymbols] are constructed where
-//   [labelName2Position] records the position of each label in [storage] and
-//   [globalSymbols] records the global symbols. By default, all non-local
-//   symbols are global.
+// * Labels are handled. [labelName2Position] and [globalSymbols] are
+//   constructed where [labelName2Position] records the position of each label
+//   in [storage] and [globalSymbols] records the global symbols.
 // * Also, we initialize all bytes in [storage] to 0xff instead of 0, which
 //   might be helpful in recognizing accessing to uninitialized data.
 // The second pass: (cf. void parseCurrentLine(LineIter iter);)
-// TODO
+//
+// TODO:
+//   * local labels (numerical labels) are not supported yet
 class Assembler {
   using LineIter = std::vector<std::string>::const_iterator;
 
@@ -96,56 +94,46 @@ public:
     for (auto &sym : globalSymbols)
       globalSymbol2Pos.emplace(sym, labelName2Position.at({sym, ""}));
     return {std::move(storage), std::move(instsAndPos), globalSymbol2Pos,
-            std::move(containsExternalLabel)};
+            std::move(containsExternalLabel),
+            std::move(containsRelocationFunc)};
   }
 
 private:
-  // Compute labelName2Position
-  // For each local label, including the one appeared in instructions, rename it
-  //   as #GlobalLabel#LocalLabel:
-  // Add global labels
-  // Allocate storage
   void prepare() {
-    LabelName lastLabel;
-
     for (auto &line : src) {
       auto tokens = split(line, " ,\t");
+      if (tokens.at(0) == ".string") {
+        tokens = {".string", strip(line.substr(7))};
+      }
 
       if (isDirective(line)) {
-        if (tokens.at(0) != ".align")
+        if (tokens.at(0) == ".align") {
+          auto alignment = std::stoi(tokens.at(1));
+          storage.resize(roundUp(storage.size(), alignment));
           continue;
-        auto alignment = std::stoi(tokens.at(1));
-        storage.resize(roundUp(storage.size(), alignment));
-        continue;
-      }
-      if (tokens.size() == 1 && tokens[0].back() == ':') { // is label
-        // TODO: handle non-text labels?
-        auto label = tokens.at(0);
-        label.pop_back();           // remove ':'
-        if (label.front() == '.') { // local label
-          assert(!lastLabel.global.empty());
-          label = label.substr(1);
-          lastLabel.local = label;
-          line = "#" + lastLabel.global + "#" + lastLabel.local + ":";
-        } else { // global label
-          lastLabel.global = label;
-          lastLabel.local = "";
-          globalSymbols.emplace(label);
         }
-        labelName2Position.emplace(lastLabel, storage.size());
+        if (tokens.at(0) == ".string") {
+          // -2: remove ""
+          // +1: add \0
+          storage.resize(storage.size() + tokens.at(1).size() - 2 + 1);
+          continue;
+        }
+        if (tokens.at(0) == ".globl") {
+          globalSymbols.emplace(tokens.at(1));
+          continue;
+        }
         continue;
       }
-      // handle instructions
-      std::string opName = tokens.at(0);
-      if (tokens.back().front() == '.') { // rename the local label
-        assert(!lastLabel.global.empty());
-        tokens.back() = "#" + lastLabel.global + "#" + tokens.back().substr(1);
-        std::string newLine = tokens.at(0) + " ";
-        for (std::size_t i = 1; i < tokens.size(); ++i)
-          newLine += tokens[i] + ",";
-        newLine.pop_back();
-        line = newLine;
+
+      if (isLabel(tokens.at(0))) {
+        assert(tokens.size() == 1);
+        auto label = tokens.at(0);
+        label.pop_back(); // remove ':'
+        labelName2Position.emplace(LabelName(label, ""), storage.size());
+        continue;
       }
+
+      // handle instructions
       if (auto insts = decomposePseudoInst(tokens); !insts.empty()) {
         // pseudo instructions may be decomposed into several instructions
         storage.resize(storage.size() + 4 * insts.size());
@@ -159,23 +147,25 @@ private:
   void parseCurrentLine(LineIter iter) {
     auto line = *iter;
     auto tokens = split(line, " ,\t");
+    if (tokens.at(0) == ".string") {
+      tokens = {".string", strip(line.substr(7))};
+    }
 
     if (isDirective(line)) {
       handleDerivative(tokens);
       return;
     }
-    if (tokens.size() == 1 && tokens[0].back() == ':') { // is a label
+    if (isLabel(tokens[0])) {
       return;
     }
-    handleInstruction(tokens, iter - src.begin());
+    handleInstruction(tokens);
   }
 
 private:
   void handleDerivative(const std::vector<std::string> &tokens) {
     assert(!tokens.empty());
 
-    if (tokens[0] == ".global") {
-      globalSymbols.insert(tokens.at(1));
+    if (tokens[0] == ".globl") {
       return;
     }
     if (tokens[0] == ".text") {
@@ -184,6 +174,17 @@ private:
     }
     if (tokens[0] == ".align") {
       curStoragePos = roundUp(curStoragePos, std::stoi(tokens.at(1)));
+      return;
+    }
+    if (tokens[0] == ".string") {
+      // remove ""
+      auto str = tokens.at(1).substr(1);
+      str.pop_back();
+      std::strcpy((char *)(storage.data() + curStoragePos), str.c_str());
+      curStoragePos += str.size();
+      storage.at(curStoragePos) = std::byte(0);
+      ++curStoragePos;
+      return;
     }
 
     std::cerr << "Ignoring derivative: ";
@@ -212,8 +213,7 @@ private:
     return (std::int64_t)pos - (std::int64_t)curStoragePos;
   }
 
-  void handleInstruction(const std::vector<std::string> &tokens,
-                         std::size_t linePos /* to be removed */) {
+  void handleInstruction(const std::vector<std::string> &tokens) {
     assert(!tokens.empty());
 
     // handle pseudo instructions
@@ -268,6 +268,99 @@ private:
     *(std::uint32_t *)(storage.data() + curStoragePos) = instsAndPos.size();
     instsAndPos.emplace_back(inst, curStoragePos);
     curStoragePos += 4;
+  }
+
+  // e.g. 0xfff, 123, %hi(.LC0)
+  std::pair<std::uint32_t, bool /*relocation*/>
+  parseImm(const std::string &str) const {
+    if (str.front() != '%')
+      return {std::stoi(str, nullptr, 0), false};
+    // e.g. %hi(.LC0)
+    auto label = str.substr(4);
+    label.pop_back();
+    std::uint32_t addr = labelName2Position.at({label, ""});
+    if (str.substr(1, 2) == "hi") {
+      return {addr >> 12, true};
+    }
+    assert(str.substr(1, 2) == "lo");
+    return {addr & 0xfff, true};
+  }
+
+  std::shared_ptr<inst::Instruction>
+  parseInst(const std::vector<std::string> &tokens) {
+    // const std::size_t DummyOffset = 0;
+    assert(!tokens.empty());
+
+    auto op = name2OpType(tokens[0]);
+
+    if (op == inst::Instruction::LUI || op == inst::Instruction::AUIPC) {
+      auto dest = regName2regNumber(tokens.at(1));
+      auto imm = parseImm(tokens.at(2));
+      auto inst = std::make_shared<inst::ImmConstruction>(op, dest, imm.first);
+      if (imm.second)
+        containsRelocationFunc.emplace(inst->getId());
+      return inst;
+    }
+
+    static std::unordered_set<std::string> arithRegReg = {
+        "add", "sub", "sll", "slt", "sltu", "xor", "srl", "sra", "or", "and"};
+    if (isIn(arithRegReg, tokens[0])) {
+      auto dest = regName2regNumber(tokens.at(1));
+      auto src1 = regName2regNumber(tokens.at(2));
+      auto src2 = regName2regNumber(tokens.at(3));
+      return std::make_shared<inst::ArithRegReg>(op, dest, src1, src2);
+    }
+
+    static std::unordered_set<std::string> arithRegImmInsts = {
+        "addi", "slti", "sltiu", "xori", "ori", "andi", "slli", "srli", "srai"};
+    if (isIn(arithRegImmInsts, tokens.at(0))) {
+      auto dest = regName2regNumber(tokens.at(1));
+      auto rc = regName2regNumber(tokens.at(2));
+      auto imm = parseImm(tokens.at(3));
+      auto inst = std::make_shared<inst::ArithRegImm>(op, dest, rc, imm.first);
+      if (imm.second)
+        containsRelocationFunc.emplace(inst->getId());
+      return inst;
+    }
+
+    static std::unordered_set<std::string> memAccessInsts = {
+        "lb", "lh", "lw", "lbu", "lhu", "sb", "sh", "sw"};
+    if (isIn(memAccessInsts, tokens[0])) {
+      auto reg = regName2regNumber(tokens.at(1));
+      auto [base, offset] = parseBaseOffset(tokens.at(2));
+      return std::make_shared<inst::MemAccess>(op, reg, base, offset);
+    }
+
+    if (op == inst::Instruction::JAL) {
+      auto dest = regName2regNumber(tokens.at(1));
+      auto offsetOpt = getOffset(tokens.at(2));
+      if (offsetOpt)
+        return std::make_shared<inst::JumpLink>(dest, offsetOpt.value());
+      auto inst = std::make_shared<inst::JumpLink>(dest, 0);
+      containsExternalLabel.emplace(inst->getId(), tokens[2]);
+      return inst;
+    }
+
+    if (op == inst::Instruction::JALR) {
+      auto dest = regName2regNumber(tokens.at(1));
+      auto [base, offset] = parseBaseOffset(tokens.at(2));
+      return std::make_shared<inst::JumpLinkReg>(dest, base, offset);
+    }
+
+    static std::unordered_set<std::string> branchInsts = {
+        "beq", "bne", "blt", "bge", "bltu", "bgeu"};
+    if (isIn(branchInsts, tokens[0])) {
+      auto src1 = regName2regNumber(tokens.at(1));
+      auto src2 = regName2regNumber(tokens.at(2));
+      auto offsetOpt = getOffset(tokens.at(3));
+      if (offsetOpt)
+        return std::make_shared<inst::Branch>(op, src1, src2,
+                                              offsetOpt.value());
+      auto inst = std::make_shared<inst::Branch>(op, src1, src2, 0);
+      containsExternalLabel.emplace(inst->getId(), tokens.at(3));
+      return inst;
+    }
+    assert(false);
   }
 
   // Note: call and tail are handled in a different way
@@ -331,6 +424,7 @@ private: // final results
   // When we encounter an instruction which contains an external label, then
   // we add the instruction ID and the label name into this.
   std::unordered_map<inst::Instruction::Id, std::string> containsExternalLabel;
+  std::unordered_set<inst::Instruction::Id> containsRelocationFunc;
 };
 
 } // namespace

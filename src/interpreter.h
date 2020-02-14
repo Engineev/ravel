@@ -23,6 +23,8 @@ private:
 
   void simulate(const std::shared_ptr<inst::Instruction> &inst);
 
+  void simulateLibCFunc(libc::Func funcN);
+
 private:
   const Interpretable &interpretable;
 

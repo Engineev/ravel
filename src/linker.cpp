@@ -30,9 +30,10 @@ public:
     // symbols should also be recorded.
 
     mergeObj(makeStartObj());
-    std::size_t start = 0;
-    std::size_t end = 2 * 4;
-
+    storage.resize(48);
+    for (auto &[name, pos] : libc::getName2Pos()) {
+      symbolTable.emplace(name, pos);
+    }
     for (auto &obj : objects) {
       mergeObj(obj);
     }
@@ -41,7 +42,7 @@ public:
     std::vector<std::shared_ptr<inst::Instruction>> insts;
     for (auto &[inst, _] : instsAndPos)
       insts.emplace_back(inst);
-    return {std::move(storage), insts, start, end};
+    return {std::move(storage), insts};
   }
 
 private:
@@ -55,8 +56,11 @@ private:
     auto &objInstsAndPos = obj.getInstsAndPos();
 
     // place the instructions into [objStorage] and build symbol table
-    for (auto &[inst, pos] : objInstsAndPos) {
+    for (auto [inst, pos] : objInstsAndPos) {
       *(std::uint32_t *)(objStorage.data() + pos) = instsAndPos.size();
+      if (isIn(obj.getContainsRelocationFunc(), inst->getId())) {
+        inst = computeRelocatedImm(inst);
+      }
       instsAndPos.emplace_back(inst, storage.size() + pos);
     }
     for (auto [label, pos] : obj.getGlobalLabel2Pos()) {
@@ -71,32 +75,45 @@ private:
     append(storage, objStorage);
   }
 
+  std::shared_ptr<inst::Instruction>
+  computeRelocatedImm(const std::shared_ptr<inst::Instruction> &inst) const {
+    if (inst->getOp() == inst::Instruction::LUI) {
+      auto p = std::static_pointer_cast<inst::ImmConstruction>(inst);
+      auto imm = ((p->getImm() << 12) + storage.size()) >> 12;
+      return std::make_shared<inst::ImmConstruction>(inst::Instruction::LUI,
+                                                     p->getDest(), imm);
+    }
+    if (inst->getOp() == inst::Instruction::ADDI) {
+      auto p = std::static_pointer_cast<inst::ArithRegImm>(inst);
+      auto imm = (p->getImm() + storage.size()) & 0xfff;
+      return std::make_shared<inst::ArithRegImm>(
+          inst::Instruction::ADDI, p->getDest(), p->getSrc(), imm);
+    }
+    assert(false);
+  }
+
   void resolveSymbols() {
     for (auto &[inst, pos] : instsAndPos) {
       if (!isIn(containsUnresolvedSymbol, inst->getId()))
         continue;
       auto symPos = symbolTable.at(containsUnresolvedSymbol.at(inst->getId()));
+      int offset = symPos - pos;
       if (inst->getOp() == inst::Instruction::AUIPC) {
         auto auipc = std::dynamic_pointer_cast<inst::ImmConstruction>(inst);
         assert(auipc);
         inst = std::make_shared<inst::ImmConstruction>(
-            inst::Instruction::AUIPC, auipc->getDest(), symPos >> 12);
+            inst::Instruction::AUIPC, auipc->getDest(), offset >> 12);
         continue;
       }
       if (inst->getOp() == inst::Instruction::JALR) {
         auto jalr = std::dynamic_pointer_cast<inst::JumpLinkReg>(inst);
         assert(jalr);
         inst = std::make_shared<inst::JumpLinkReg>(
-            jalr->getDest(), jalr->getBase(), symPos & 0xfff);
+            jalr->getDest(), jalr->getBase(), (offset + 4) & 0xfff);
         continue;
       }
       assert(false); // TODO
     }
-  }
-
-  std::shared_ptr<inst::Instruction>
-  resolveSymbol(const std::shared_ptr<inst::Instruction> &inst) const {
-    assert(false); // TODO
   }
 
   std::size_t resolveSymbol(const std::string &label) const {

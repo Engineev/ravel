@@ -35,6 +35,7 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     return;
   }
   if (inst->getOp() == inst::ImmConstruction::AUIPC) {
+    // rd := pc + ( imm20 << 12 )
     auto &p = spc<inst::ImmConstruction>(inst);
     auto offset = (std::uint32_t)p.getImm() & 0xfffff000;
     regs.at(p.getDest()) = pc + offset;
@@ -202,19 +203,35 @@ void Interpreter::load() {
                  interpretable.getStorage().end());
   std::size_t MaxStorageSize = 64 * 1024 * 1024;
   storage.resize(MaxStorageSize);
-  pc = interpretable.getStart();
+  pc = Interpretable::Start;
   regs.at(regName2regNumber("sp")) = MaxStorageSize;
 }
 
 void Interpreter::interpret() {
   load();
-  while (pc != interpretable.getEnd()) {
+  while (pc != Interpretable::End) {
     assert(0 <= pc && pc < storage.size());
+    if (Interpretable::LibcFuncStart <= pc && pc < Interpretable::LibcFuncEnd) {
+      // std::cerr << pc << ": call libc-" << pc << std::endl;
+      simulateLibCFunc(libc::Func(pc));
+      pc = regs[1];
+      continue;
+    }
+
     auto instIdx = *(std::uint32_t *)(storage.data() + pc);
     auto &inst = interpretable.getInsts().at(instIdx);
-    // std::cerr << toString(inst) << std::endl;
+    // std::cerr << pc << ": " << toString(inst) << std::endl;
     simulate(inst);
   }
+}
+
+void Interpreter::simulateLibCFunc(libc::Func funcN) {
+  if (funcN == libc::Func::Puts) {
+    std::size_t pos = regs[10];
+    regs[10] = puts((const char *)(storage.data() + pos));
+    return;
+  }
+  assert(false);
 }
 
 } // namespace ravel

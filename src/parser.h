@@ -18,6 +18,8 @@ std::vector<std::string> split(const std::string &s,
 
 bool isDirective(const std::string &str);
 
+bool isLabel(const std::string &str);
+
 // If [line] emits or makes current a new section, then return
 // the name of the section
 std::optional<std::string> getSectionName(const std::string &line);
@@ -27,10 +29,6 @@ std::optional<std::string> getSectionName(const std::string &line);
 // Move labels into a separate line
 // Remove empty lines
 std::vector<std::string> preprocess(const std::string &src);
-
-// All labels will be translated to the dummy offset 0x0.
-std::shared_ptr<inst::Instruction>
-parseInst(const std::vector<std::string> &tokens);
 
 std::string opType2Name(inst::Instruction::OpType op);
 
