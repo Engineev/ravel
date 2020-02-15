@@ -336,7 +336,7 @@ private:
       auto dest = regName2regNumber(tokens.at(1));
       auto offsetOpt = getOffset(tokens.at(2));
       if (offsetOpt)
-        return std::make_shared<inst::JumpLink>(dest, offsetOpt.value());
+        return std::make_shared<inst::JumpLink>(dest, offsetOpt.value() / 2);
       auto inst = std::make_shared<inst::JumpLink>(dest, 0);
       containsExternalLabel.emplace(inst->getId(), tokens[2]);
       return inst;
