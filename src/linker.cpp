@@ -96,13 +96,15 @@ private:
     for (auto &[inst, pos] : instsAndPos) {
       if (!isIn(containsUnresolvedSymbol, inst->getId()))
         continue;
-      auto symPos = symbolTable.at(containsUnresolvedSymbol.at(inst->getId()));
+      auto sym = containsUnresolvedSymbol.at(inst->getId());
+      auto symPos = symbolTable.at(sym);
       int offset = symPos - pos;
       if (inst->getOp() == inst::Instruction::AUIPC) {
         auto auipc = std::dynamic_pointer_cast<inst::ImmConstruction>(inst);
         assert(auipc);
         inst = std::make_shared<inst::ImmConstruction>(
-            inst::Instruction::AUIPC, auipc->getDest(), offset >> 12);
+            inst::Instruction::AUIPC, auipc->getDest(),
+            std::uint32_t(offset) >> 12);
         continue;
       }
       if (inst->getOp() == inst::Instruction::JALR) {

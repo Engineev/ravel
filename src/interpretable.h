@@ -18,7 +18,7 @@ namespace ravel {
 //   _start:
 //            call main  ; this  will be decomposed into 2 instructions
 //            nop        ; stands for the end of interpretation
-// The next 36 bytes are just placeholders for C library functions. When the
+// The next 36 bytes are just placeholders for 18 C library functions. When the
 // program jumps to an address between 12 and 48, it will be viewed as calling
 // a corresponding C library function.
 class Interpretable {
@@ -45,11 +45,17 @@ private:
 namespace libc {
 enum Func {
   Puts = 12,
+  Scanf = 14,
+  Printf = 16,
 };
 
 inline const std::unordered_map<std::string, Func> &getName2Pos() {
   using namespace std::string_literals;
-  static std::unordered_map<std::string, Func> mp = {{"puts", Func::Puts}};
+  static std::unordered_map<std::string, Func> mp = {
+      {"puts", Func::Puts},
+      {"__isoc99_scanf", Func::Scanf},
+      {"printf", Func::Printf},
+  };
   return mp;
 }
 

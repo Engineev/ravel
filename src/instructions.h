@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>
@@ -58,15 +59,17 @@ namespace ravel::inst {
 
 class ImmConstruction : public Instruction {
 public:
-  ImmConstruction(OpType op, std::size_t dest, int imm)
-      : Instruction(op), dest(dest), imm(imm) {}
+  ImmConstruction(OpType op, std::size_t dest, std::uint32_t imm)
+      : Instruction(op), dest(dest), imm(imm) {
+    assert((imm >> 20) == 0);
+  }
 
   size_t getDest() const { return dest; }
-  int getImm() const { return imm; }
+  std::uint32_t getImm() const { return imm; }
 
 private:
   std::size_t dest;
-  int imm;
+  std::uint32_t imm;
 };
 
 class ArithRegReg : public Instruction {

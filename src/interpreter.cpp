@@ -1,8 +1,10 @@
 #include "interpreter.h"
 
+#include <algorithm>
 #include <cassert>
-// #include <iostream>
+//#include <iostream>
 
+#include "libc_sim.h"
 #include "parser.h"
 
 namespace ravel {
@@ -37,7 +39,7 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   if (inst->getOp() == inst::ImmConstruction::AUIPC) {
     // rd := pc + ( imm20 << 12 )
     auto &p = spc<inst::ImmConstruction>(inst);
-    auto offset = (std::uint32_t)p.getImm() & 0xfffff000;
+    auto offset = (std::uint32_t)p.getImm() << 12;
     regs.at(p.getDest()) = pc + offset;
     return;
   }
@@ -226,9 +228,17 @@ void Interpreter::interpret() {
 }
 
 void Interpreter::simulateLibCFunc(libc::Func funcN) {
-  if (funcN == libc::Func::Puts) {
+  if (funcN == libc::Puts) {
     std::size_t pos = regs[10];
     regs[10] = puts((const char *)(storage.data() + pos));
+    return;
+  }
+  if (funcN == libc::Scanf) {
+    libc::scanf(regs, storage);
+    return;
+  }
+  if (funcN == libc::Printf) {
+    libc::printf(regs, storage);
     return;
   }
   assert(false);
