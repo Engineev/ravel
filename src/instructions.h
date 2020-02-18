@@ -20,6 +20,7 @@ public:
     ADDI, SLTI, SLTIU, XORI, ORI, ANDI, SLLI, SRLI, SRAI,  // ArithRegImm
     ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND,      // ArithRegReg
     // TODO: fence ...
+    MUL, MULH, MULHSU, MULHU, DIV, DIVU, REM, REMU,  // MArith
   };
   // clang-format on
 
@@ -61,7 +62,7 @@ class ImmConstruction : public Instruction {
 public:
   ImmConstruction(OpType op, std::size_t dest, std::uint32_t imm)
       : Instruction(op), dest(dest), imm(imm) {
-    assert((imm >> 20) == 0);
+    assert((imm >> 20) == 0 || ((-imm) >> 20) == 0);
   }
 
   size_t getDest() const { return dest; }
@@ -157,6 +158,20 @@ public:
 private:
   std::size_t src1, src2;
   int offset;
+};
+
+class MArith : public Instruction {
+public:
+  MArith(Instruction::OpType op, std::size_t dest, std::size_t src1,
+         std::size_t src2)
+      : Instruction(op), dest(dest), src1(src1), src2(src2) {}
+
+  size_t getDest() const { return dest; }
+  size_t getSrc1() const { return src1; }
+  size_t getSrc2() const { return src2; }
+
+private:
+  std::size_t dest, src1, src2;
 };
 
 } // namespace ravel::inst

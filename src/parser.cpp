@@ -29,7 +29,20 @@ std::vector<std::string> split(const std::string &s,
       words.emplace_back(s.substr(current, next - current));
   } while (next != std::string::npos);
 
+  // myList.erase(
+  //    std::remove_if(myList.begin(), myList.end(), IsMarkedToDelete),
+  //    myList.end());
+  words.erase(std::remove(words.begin(), words.end(), ""), words.end());
+
   return words;
+}
+
+std::vector<std::string> tokenize(const std::string &line) {
+  auto tokens = split(line, " ,\t");
+  if (tokens.at(0) == ".string") {
+    tokens = {".string", strip(line.substr(7))};
+  }
+  return tokens;
 }
 
 bool isDirective(const std::string &str) {
@@ -138,6 +151,14 @@ std::string opType2Name(inst::Instruction::OpType op) {
       {inst::Instruction::SRA, "SRA"s},
       {inst::Instruction::OR, "OR"s},
       {inst::Instruction::AND, "AND"s},
+      {inst::Instruction::MUL, "MUL"s},
+      {inst::Instruction::MULH, "MULH"s},
+      {inst::Instruction::MULHSU, "MULHSU"s},
+      {inst::Instruction::MULHU, "MULHU"s},
+      {inst::Instruction::DIV, "DIV"s},
+      {inst::Instruction::DIVU, "DIVU"s},
+      {inst::Instruction::REM, "REM"s},
+      {inst::Instruction::REMU, "REMU"s},
   };
   auto name = mp.at(op);
   for (auto &c : name)
@@ -185,6 +206,14 @@ inst::Instruction::OpType name2OpType(std::string name) {
       {"SRA"s, inst::Instruction::SRA},
       {"OR"s, inst::Instruction::OR},
       {"AND"s, inst::Instruction::AND},
+      {"MUL"s, inst::Instruction::MUL},
+      {"MULH"s, inst::Instruction::MULH},
+      {"MULHSU"s, inst::Instruction::MULHSU},
+      {"MULHU"s, inst::Instruction::MULHU},
+      {"DIV"s, inst::Instruction::DIV},
+      {"DIVU"s, inst::Instruction::DIVU},
+      {"REM"s, inst::Instruction::REM},
+      {"REMU"s, inst::Instruction::REMU},
   };
 
   for (auto &c : name) {
@@ -231,32 +260,36 @@ std::string toString(const std::shared_ptr<inst::Instruction> &inst) {
   auto getName = [](std::size_t num) { return regNumber2regName(num); };
   auto opName = opType2Name(inst->getOp());
   if (auto p = std::dynamic_pointer_cast<inst::ImmConstruction>(inst)) {
-    return opName + "\t" + getName(p->getDest()) + ", " +
+    return opName + " " + getName(p->getDest()) + ", " +
            std::to_string(p->getImm());
   }
   if (auto p = std::dynamic_pointer_cast<inst::ArithRegReg>(inst)) {
-    return opName + "\t" + getName(p->getDest()) + ", " +
-           getName(p->getSrc1()) + ", " + getName(p->getSrc2());
+    return opName + " " + getName(p->getDest()) + ", " + getName(p->getSrc1()) +
+           ", " + getName(p->getSrc2());
   }
   if (auto p = std::dynamic_pointer_cast<inst::ArithRegImm>(inst)) {
-    return opName + "\t" + getName(p->getDest()) + ", " + getName(p->getSrc()) +
+    return opName + " " + getName(p->getDest()) + ", " + getName(p->getSrc()) +
            ", " + std::to_string(p->getImm());
   }
   if (auto p = std::dynamic_pointer_cast<inst::MemAccess>(inst)) {
-    return opName + "\t" + getName(p->getReg()) + ", " +
+    return opName + " " + getName(p->getReg()) + ", " +
            std::to_string(p->getOffset()) + "(" + getName(p->getBase()) + ")";
   }
   if (auto p = std::dynamic_pointer_cast<inst::JumpLink>(inst)) {
-    return opName + "\t" + getName(p->getDest()) + ", " +
+    return opName + " " + getName(p->getDest()) + ", " +
            std::to_string(p->getOffset());
   }
   if (auto p = std::dynamic_pointer_cast<inst::JumpLinkReg>(inst)) {
-    return opName + "\t" + getName(p->getDest()) + ", " +
+    return opName + " " + getName(p->getDest()) + ", " +
            std::to_string(p->getOffset()) + "(" + getName(p->getBase()) + ")";
   }
   if (auto p = std::dynamic_pointer_cast<inst::Branch>(inst)) {
-    return opName + "\t" + getName(p->getSrc1()) + ", " +
-           getName(p->getSrc2()) + ", " + std::to_string(p->getOffset());
+    return opName + " " + getName(p->getSrc1()) + ", " + getName(p->getSrc2()) +
+           ", " + std::to_string(p->getOffset());
+  }
+  if (auto p = std::dynamic_pointer_cast<inst::MArith>(inst)) {
+    return opName + " " + getName(p->getDest()) + ", " + getName(p->getSrc1()) +
+           ", " + getName(p->getSrc2());
   }
 
   assert(false);

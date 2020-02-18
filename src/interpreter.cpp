@@ -193,6 +193,43 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     return;
   }
 
+  if (Op::MUL <= inst->getOp() && inst->getOp() <= Op::REMU) {
+    auto &p = spc<inst::MArith>(inst);
+    auto destNumber = p.getDest();
+    auto &dest = regs.at(destNumber);
+    std::uint32_t rs1 = regs.at(p.getSrc1());
+    std::uint32_t rs2 = regs.at(p.getSrc2());
+    switch (inst->getOp()) {
+    case Op::MUL:
+      dest = (std::int32_t)rs1 * (std::int32_t)rs2;
+      return;
+    case Op::MULH:
+      dest = (std::uint32_t)(((std::int64_t)rs1 * (std::int64_t)rs2) >> 32);
+      return;
+    case Op::MULHSU:
+      dest = (std::uint32_t)(((std::int64_t)rs1 * (std::uint64_t)rs2) >> 32);
+      return;
+    case Op::MULHU:
+      dest = (std::uint32_t)(((std::uint64_t)rs1 * (std::uint64_t)rs2) >> 32);
+      return;
+    case Op::DIV:
+      dest = (std::int32_t)rs1 / (std::int32_t)rs2;
+      return;
+    case Op::DIVU:
+      dest = (std::uint32_t)rs1 / (std::uint32_t)rs2;
+      return;
+    case Op::REM:
+      dest = (std::int32_t)rs1 % (std::int32_t)rs2;
+      return;
+    case Op::REMU:
+      dest = (std::uint32_t)rs1 % (std::uint32_t)rs2;
+      return;
+    default:
+      assert(false);
+    }
+    return;
+  }
+
   assert(false);
 }
 

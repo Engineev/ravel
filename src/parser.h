@@ -16,6 +16,8 @@ std::string strip(std::string str);
 std::vector<std::string> split(const std::string &s,
                                const std::string &delimiters = " \t");
 
+std::vector<std::string> tokenize(const std::string &line);
+
 bool isDirective(const std::string &str);
 
 bool isLabel(const std::string &str);
