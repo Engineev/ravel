@@ -4,6 +4,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <functional>
+
 #ifdef PRINT_INSTS
 #include <iostream>
 #endif
@@ -30,14 +32,18 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   // Do NOT use dynamic cast, it is too time-consuming
   using Op = inst::Instruction::OpType;
 
-  auto resetZero =
-      std::shared_ptr<void>(nullptr, [this](void *) { regs[0] = 0; });
-  auto pcAdd4 = std::shared_ptr<void>(nullptr, [this](void *) { pc += 4; });
+  struct Raii {
+    Raii(std::function<void()> func) : func(std::move(func)) {}
+    ~Raii() { func(); }
+    std::function<void()> func;
+  };
+  auto resetZero = Raii([this] { regs[0] = 0; });
+  auto pcAdd4 = Raii([this] { pc += 4; });
 
   // ImmConstruction
   if (inst->getOp() == inst::Instruction::LUI) {
     auto &p = spc<inst::ImmConstruction>(inst);
-    regs.at(p.getDest()) = (std::uint32_t)p.getImm() & 0xfffff000;
+    regs.at(p.getDest()) = (std::uint32_t)p.getImm() << 12;
     return;
   }
   if (inst->getOp() == inst::ImmConstruction::AUIPC) {
@@ -245,7 +251,8 @@ void Interpreter::load() {
   storage.insert(storage.end(), interpretable.getStorage().begin(),
                  interpretable.getStorage().end());
   heapPtr = storage.size();
-  std::size_t MaxStorageSize = 64 * 1024 * 1024;
+  std::size_t MaxStorageSize = 512 * 1024 * 1024;
+  assert(storage.size() < MaxStorageSize / 2);
   storage.resize(MaxStorageSize);
   pc = Interpretable::Start;
   regs.at(regName2regNumber("sp")) = MaxStorageSize;
@@ -266,6 +273,9 @@ void Interpreter::interpret() {
 
     auto instIdx = *(std::uint32_t *)(storage.data() + pc);
     auto &inst = interpretable.getInsts().at(instIdx);
+    if (inst->getComment() == "check") {
+      // std::cerr << "fuck\n";
+    }
 #ifdef PRINT_INSTS
     std::cerr << pc << ": " << toString(inst);
     if (!inst->getComment().empty())
@@ -295,6 +305,9 @@ void Interpreter::simulateLibCFunc(libc::Func funcN) {
     return;
   case libc::FREE:
     libc::free(regs, malloced);
+    return;
+  case libc::MEMCPY:
+    libc::memcpy(regs, storage);
     return;
   default:
     assert(false);

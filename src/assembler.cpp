@@ -183,7 +183,9 @@ private:
       return;
     }
     if (tokens[0] == ".section") {
-      auto sec = tokens.at(1);
+      auto secNames = split(tokens.at(1), ".");
+
+      auto sec = "." + secNames.at(0);
       if (sec == ".text")
         curSection = Section ::TEXT;
       else if (sec == ".data")
@@ -240,9 +242,8 @@ private:
       storage.back() = (std::byte)0;
       return;
     }
-
     if (tokens.at(0) == ".word") {
-      assert(curSection == Section::RODATA);
+      assert(curSection == Section::RODATA || curSection == Section::DATA);
       std::int32_t val = std::stoi(tokens.at(1), nullptr, 0);
       auto curPos = storage.size();
       storage.resize(storage.size() + 4);
@@ -262,8 +263,10 @@ private:
 
   void handleInstruction(const std::string &line) {
     auto tokens = tokenize(line);
-    std::size_t nInsts =
-        (tokens.at(0) == "call" || tokens.at(0) == "tail") ? 2 : 1;
+    std::size_t nInsts = (tokens.at(0) == "call" || tokens.at(0) == "tail" ||
+                          tokens.at(0) == "li")
+                             ? 2
+                             : 1;
     text.resize(text.size() + 4 * nInsts);
   }
 
@@ -332,12 +335,16 @@ private:
       return "addi x0, x0, 0"s;
     }
     if (tokens[0] == "li") {
-      auto imm = std::stoi(tokens.at(2), nullptr, 0);
-      assert(std::abs(imm) <= 0xfff); // TODO
-      return "ori "s + tokens.at(1) + ", x0, "s + tokens.at(2);
+      assert(false);
     }
     if (tokens[0] == "mv") {
       return "addi "s + tokens.at(1) + "," + tokens.at(2) + ",0";
+    }
+    if (tokens[0] == "not") {
+      return "xori "s + tokens.at(1) + ", " + tokens.at(2) + ", -1";
+    }
+    if (tokens[0] == "neg") {
+      return "sub "s + tokens.at(1) + ", x0, " + tokens.at(2);
     }
 
     static const std::unordered_map<std::string, std::string> branchPair = {
@@ -377,6 +384,10 @@ private:
       handleCall(tokens);
       return;
     }
+    if (tokens[0] == "li") {
+      handleLi(tokens);
+      return;
+    }
 
     handleNonPseudoInst(translatePseudoInst(line));
   }
@@ -394,6 +405,17 @@ private:
     if (!pos)
       return std::nullopt;
     return (std::int64_t)pos.value() - (std::int64_t)curPos;
+  }
+
+  void handleLi(const std::vector<std::string> &tokens) {
+    auto dest = tokens.at(1);
+    auto imm = std::stoi(tokens.at(2), nullptr, 0);
+    auto uImm = std::uint32_t(imm) >> 12;
+    auto lImm = std::uint32_t(imm) & 0xfff;
+    auto lui = "lui " + dest + ", " + std::to_string(uImm);
+    auto ori = "ori " + dest + ", " + dest + ", " + std::to_string(lImm);
+    handleNonPseudoInst(lui);
+    handleNonPseudoInst(ori);
   }
 
   void handleCall(const std::vector<std::string> &tokens) {

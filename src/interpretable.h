@@ -50,6 +50,7 @@ enum Func {
   PUTCHAR = 18,
   MALLOC = 20,
   FREE = 22,
+  MEMCPY = 24,
 };
 
 inline const std::unordered_map<std::string, Func> &getName2Pos() {
@@ -62,6 +63,7 @@ inline const std::unordered_map<std::string, Func> &getName2Pos() {
       {"putchar", PUTCHAR},
       {"malloc", MALLOC},
       {"free", FREE},
+      {"memcpy", MEMCPY},
   };
   // clang-format on
   return mp;

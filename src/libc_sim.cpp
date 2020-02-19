@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <cstring>
 #include <string>
 
 #include "container_utils.h"
@@ -83,6 +84,15 @@ void libc::free(const std::array<std::int32_t, 32> &regs,
   std::size_t addr = regs[10];
   assert(isIn(malloced, addr));
   malloced.erase(malloced.find(addr));
+}
+
+void libc::memcpy(std::array<std::int32_t, 32> &regs,
+                  std::vector<std::byte> &storage) {
+  std::size_t dest = regs[10];
+  std::size_t src = regs[11];
+  std::size_t cnt = regs[12];
+  assert(src + cnt < storage.size() && dest + cnt < storage.size());
+  std::memcpy(storage.data() + dest, storage.data() + src, cnt);
 }
 
 } // namespace ravel
