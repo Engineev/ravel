@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <unordered_set>
 #include <vector>
 
 namespace ravel::libc {
@@ -16,6 +17,10 @@ void printf(std::array<std::int32_t, 32> &regs,
 void putchar(std::array<std::int32_t, 32> &regs);
 
 void malloc(std::array<std::int32_t, 32> &regs,
-            const std::vector<std::byte> &storage, std::size_t &heapPtr);
+            const std::vector<std::byte> &storage, std::size_t &heapPtr,
+            std::unordered_set<std::size_t> &malloced);
+
+void free(const std::array<std::int32_t, 32> &regs,
+          std::unordered_set<std::size_t> &malloced);
 
 } // namespace ravel::libc

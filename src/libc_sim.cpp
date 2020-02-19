@@ -4,6 +4,8 @@
 #include <cstdio>
 #include <string>
 
+#include "container_utils.h"
+
 namespace ravel {
 
 void libc::puts(std::array<std::int32_t, 32> &regs,
@@ -67,11 +69,20 @@ void libc::putchar(std::array<std::int32_t, 32> &regs) {
 }
 
 void libc::malloc(std::array<std::int32_t, 32> &regs,
-                  const std::vector<std::byte> &storage, std::size_t &heapPtr) {
+                  const std::vector<std::byte> &storage, std::size_t &heapPtr,
+                  std::unordered_set<std::size_t> &malloced) {
   auto size = (std::size_t)regs[10];
   regs[10] = heapPtr;
+  malloced.emplace(heapPtr);
   heapPtr += size;
   assert(heapPtr < storage.size());
+}
+
+void libc::free(const std::array<std::int32_t, 32> &regs,
+                std::unordered_set<std::size_t> &malloced) {
+  std::size_t addr = regs[10];
+  assert(isIn(malloced, addr));
+  malloced.erase(malloced.find(addr));
 }
 
 } // namespace ravel

@@ -49,14 +49,21 @@ enum Func {
   PRINTF = 16,
   PUTCHAR = 18,
   MALLOC = 20,
+  FREE = 22,
 };
 
 inline const std::unordered_map<std::string, Func> &getName2Pos() {
   using namespace std::string_literals;
+  // clang-format off
   static std::unordered_map<std::string, Func> mp = {
-      {"puts", PUTS},       {"__isoc99_scanf", SCANF}, {"printf", PRINTF},
-      {"putchar", PUTCHAR}, {"malloc", MALLOC},
+      {"puts", PUTS},
+      {"__isoc99_scanf", SCANF},
+      {"printf", PRINTF},
+      {"putchar", PUTCHAR},
+      {"malloc", MALLOC},
+      {"free", FREE},
   };
+  // clang-format on
   return mp;
 }
 

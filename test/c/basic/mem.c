@@ -9,5 +9,6 @@ int main() {
     a[i] = i;
   for (int i = 0; i < N; ++i)
     printf("%d", a[i]);
+  free(a);
   return 0;
 }

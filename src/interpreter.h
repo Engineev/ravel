@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <unordered_set>
 
 #include "interpretable.h"
 
@@ -17,6 +18,8 @@ public:
   void interpret();
 
   std::uint32_t getReturnCode() const;
+
+  bool hasMemoryLeak() const { return !malloced.empty(); }
 
 private:
   void load();
@@ -32,6 +35,7 @@ private:
   std::int32_t pc = 0;
   std::vector<std::byte> storage;
   std::size_t heapPtr;
+  std::unordered_set<std::size_t> malloced;
 };
 
 } // namespace ravel

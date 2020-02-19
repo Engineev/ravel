@@ -291,7 +291,10 @@ void Interpreter::simulateLibCFunc(libc::Func funcN) {
     libc::putchar(regs);
     return;
   case libc::MALLOC:
-    libc::malloc(regs, storage, heapPtr);
+    libc::malloc(regs, storage, heapPtr, malloced);
+    return;
+  case libc::FREE:
+    libc::free(regs, malloced);
     return;
   default:
     assert(false);
