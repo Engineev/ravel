@@ -1,0 +1,106 @@
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+int N;
+int head;
+int startx;
+int starty;
+int targetx;
+int targety;
+int x;
+int y;
+int xlist[12000];
+int ylist[12000];
+int tail;
+int ok;
+int now;
+int dx[8];
+int dy[9];
+int **step;
+int i;
+int j;
+
+void origin(int N) {
+  head = 0;
+  tail = 0;
+  step = malloc(sizeof(int *) * N);
+  for (i = 0; i < N; i++) {
+    step[i] = malloc(sizeof(int) * N);
+    for (j = 0; j < N; j++)
+      step[i][j] = 0;
+  }
+}
+
+bool check(int a) { return ((a < N) && (a >= 0)); }
+
+void addList(int x, int y) {
+  if (check(x) && check(y) && step[x][y] == -1) {
+    tail++;
+    xlist[tail] = x;
+    ylist[tail] = y;
+    step[x][y] = now + 1;
+    if ((x == targetx) && (y == targety))
+      ok = 1;
+  }
+}
+int main() {
+  origin(106);
+  scanf("%d", &N);
+  targety = N - 1;
+  targetx = targety;
+  for (i = 0; i < N; i++)
+    for (j = 0; j < N; j++)
+      step[i][j] = -1;
+  dx[0] = -2;
+  dy[0] = -1;
+  dx[1] = -2;
+  dy[1] = 1;
+  dx[2] = 2;
+  dy[2] = -1;
+  dx[3] = 2;
+  dy[3] = 1;
+  dx[4] = -1;
+  dy[4] = -2;
+  dx[5] = -1;
+  dy[5] = 2;
+  dx[6] = 1;
+  dy[6] = -2;
+  dx[7] = 1;
+  dy[7] = 2;
+  while (head <= tail) {
+    x = xlist[head];
+    y = ylist[head];
+    now = step[x][y];
+    for (j = 0; j < 8; j++)
+      addList(x + dx[j], y + dy[j]);
+    if (ok == 1)
+      break;
+    head++;
+  }
+  if (ok == 1)
+    printf("%d\n", step[targetx][targety]);
+  else
+    printf("no solution!\n");
+  return 0;
+}
+
+// clang-format off
+/*!! metadata:
+=== comment ===
+horse3-5100309153-yanghuan.mx
+=== input ===
+103
+=== assert ===
+output
+=== timeout ===
+0.4
+=== output ===
+67
+=== phase ===
+codegen pretest
+=== is_public ===
+True
+
+!!*/
+
