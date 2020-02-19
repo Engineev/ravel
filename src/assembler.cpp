@@ -224,6 +224,11 @@ private:
                                LabelPos(Section::BSS, pos));
       return;
     }
+    if (tokens[0] == ".zero") {
+      std::size_t size = std::stoul(tokens.at(1));
+      storage.resize(storage.size() + size, (std::byte)0);
+      return;
+    }
 
     if (tokens.at(0) == ".string") {
       assert(curSection == Section::RODATA);
@@ -419,6 +424,7 @@ private:
     jalr += std::to_string(offset & 0xfff) + "(x6)";
     handleNonPseudoInst(auipc);
     handleNonPseudoInst(jalr);
+    instsAndPos.back().first->setComment(funcName);
   }
 
   void handleNonPseudoInst(const std::string &line) {
@@ -504,8 +510,9 @@ private:
       auto dest = regName2regNumber(tokens.at(1));
       auto offsetOpt = getOffset(tokens.at(2));
       if (offsetOpt)
-        return std::make_shared<inst::JumpLink>(dest, offsetOpt.value() / 2);
-      auto inst = std::make_shared<inst::JumpLink>(dest, 0);
+        return std::make_shared<inst::JumpLink>(dest, offsetOpt.value() / 2,
+                                                tokens.at(2));
+      auto inst = std::make_shared<inst::JumpLink>(dest, 0, tokens[2]);
       containsExternalLabel.emplace(inst->getId(), tokens[2]);
       return inst;
     }
@@ -523,9 +530,9 @@ private:
       auto src2 = regName2regNumber(tokens.at(2));
       auto offsetOpt = getOffset(tokens.at(3));
       if (offsetOpt)
-        return std::make_shared<inst::Branch>(op, src1, src2,
-                                              offsetOpt.value());
-      auto inst = std::make_shared<inst::Branch>(op, src1, src2, 0);
+        return std::make_shared<inst::Branch>(op, src1, src2, offsetOpt.value(),
+                                              tokens[3]);
+      auto inst = std::make_shared<inst::Branch>(op, src1, src2, 0, tokens[3]);
       containsExternalLabel.emplace(inst->getId(), tokens.at(3));
       return inst;
     }

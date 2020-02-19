@@ -2,4 +2,4 @@
 cmake-build-*/
 .DS_Store
 build/
-test/c/asm/
+test/c/test.s

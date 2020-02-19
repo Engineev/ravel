@@ -89,11 +89,10 @@ private:
       return std::make_shared<inst::ArithRegImm>(
           inst::Instruction::ADDI, p->getDest(), p->getSrc(), imm);
     }
-    if (inst->getOp() == inst::Instruction::LW) {
-      auto p = std::static_pointer_cast<inst::MemAccess>(inst);
+    if (auto p = std::static_pointer_cast<inst::MemAccess>(inst)) {
       auto imm = (p->getOffset() + storage.size()) & 0xfff;
-      return std::make_shared<inst::MemAccess>(inst::Instruction::LW,
-                                               p->getReg(), p->getBase(), imm);
+      return std::make_shared<inst::MemAccess>(p->getOp(), p->getReg(),
+                                               p->getBase(), imm);
     }
     assert(false);
   }

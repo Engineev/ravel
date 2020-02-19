@@ -31,6 +31,7 @@ private:
   std::array<std::int32_t, 32> regs = {0};
   std::int32_t pc = 0;
   std::vector<std::byte> storage;
+  std::size_t heapPtr;
 };
 
 } // namespace ravel

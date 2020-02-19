@@ -43,15 +43,22 @@ public:
 
 public:
   explicit Instruction(OpType type) : op(type) {}
+  Instruction(OpType type, std::string comment)
+      : op(type), comment(std::move(comment)) {}
   virtual ~Instruction() = default;
 
   OpType getOp() const { return op; }
 
   const Id &getId() const { return id; }
 
+  const std::string &getComment() const { return comment; }
+
+  void setComment(const std::string &comment_) { comment = comment_; }
+
 private:
   Id id;
   OpType op;
+  std::string comment;
 };
 
 } // namespace ravel::inst
@@ -120,8 +127,8 @@ private:
 
 class JumpLink : public Instruction {
 public:
-  JumpLink(std::size_t dest, int offset)
-      : Instruction(JAL), dest(dest), offset(offset) {}
+  JumpLink(std::size_t dest, int offset, std::string comment = "")
+      : Instruction(JAL, std::move(comment)), dest(dest), offset(offset) {}
 
   size_t getDest() const { return dest; }
   int getOffset() const { return offset; }
@@ -148,8 +155,10 @@ private:
 
 class Branch : public Instruction {
 public:
-  Branch(OpType op, std::size_t src1, std::size_t src2, int offset)
-      : Instruction(op), src1(src1), src2(src2), offset(offset) {}
+  Branch(OpType op, std::size_t src1, std::size_t src2, int offset,
+         std::string comment = "")
+      : Instruction(op, std::move(comment)), src1(src1), src2(src2),
+        offset(offset) {}
 
   size_t getSrc1() const { return src1; }
   size_t getSrc2() const { return src2; }

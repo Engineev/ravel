@@ -44,17 +44,18 @@ private:
 
 namespace libc {
 enum Func {
-  Puts = 12,
-  Scanf = 14,
-  Printf = 16,
+  PUTS = 12,
+  SCANF = 14,
+  PRINTF = 16,
+  PUTCHAR = 18,
+  MALLOC = 20,
 };
 
 inline const std::unordered_map<std::string, Func> &getName2Pos() {
   using namespace std::string_literals;
   static std::unordered_map<std::string, Func> mp = {
-      {"puts", Func::Puts},
-      {"__isoc99_scanf", Func::Scanf},
-      {"printf", Func::Printf},
+      {"puts", PUTS},       {"__isoc99_scanf", SCANF}, {"printf", PRINTF},
+      {"putchar", PUTCHAR}, {"malloc", MALLOC},
   };
   return mp;
 }

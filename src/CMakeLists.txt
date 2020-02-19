@@ -6,6 +6,7 @@ set(SOURCE main.cpp
   interpretable.h
   interpreter.cpp
   interpreter.h
+  libc_sim.cpp
   libc_sim.h
   linker.cpp
   linker.h
@@ -18,7 +19,7 @@ add_executable(ravel ${SOURCE})
 
 target_compile_features(ravel PRIVATE cxx_std_17)
 if (UNIX)
-  target_compile_options(ravel PRIVATE -O2 -Wall)
+#  target_compile_options(ravel PRIVATE -O2 -Wall)
 endif ()
 
 target_include_directories(ravel PRIVATE ${CMAKE_CURRENT_LIST_DIR})

@@ -1,8 +1,12 @@
 #include "interpreter.h"
 
+//#define PRINT_INSTS
+
 #include <algorithm>
 #include <cassert>
-//#include <iostream>
+#ifdef PRINT_INSTS
+#include <iostream>
+#endif
 
 #include "libc_sim.h"
 #include "parser.h"
@@ -240,6 +244,7 @@ std::uint32_t Interpreter::getReturnCode() const {
 void Interpreter::load() {
   storage.insert(storage.end(), interpretable.getStorage().begin(),
                  interpretable.getStorage().end());
+  heapPtr = storage.size();
   std::size_t MaxStorageSize = 64 * 1024 * 1024;
   storage.resize(MaxStorageSize);
   pc = Interpretable::Start;
@@ -251,7 +256,9 @@ void Interpreter::interpret() {
   while (pc != Interpretable::End) {
     assert(0 <= pc && pc < storage.size());
     if (Interpretable::LibcFuncStart <= pc && pc < Interpretable::LibcFuncEnd) {
-      // std::cerr << pc << ": call libc-" << pc << std::endl;
+#ifdef PRINT_INSTS
+      std::cerr << pc << ": call libc-" << pc << std::endl;
+#endif
       simulateLibCFunc(libc::Func(pc));
       pc = regs[1];
       continue;
@@ -259,24 +266,35 @@ void Interpreter::interpret() {
 
     auto instIdx = *(std::uint32_t *)(storage.data() + pc);
     auto &inst = interpretable.getInsts().at(instIdx);
-    // std::cerr << pc << ": " << toString(inst) << std::endl;
+#ifdef PRINT_INSTS
+    std::cerr << pc << ": " << toString(inst);
+    if (!inst->getComment().empty())
+      std::cerr << "  # " << inst->getComment();
+    std::cerr << std::endl;
+#endif
     simulate(inst);
   }
 }
 
 void Interpreter::simulateLibCFunc(libc::Func funcN) {
-  if (funcN == libc::Puts) {
-    std::size_t pos = regs[10];
-    regs[10] = puts((const char *)(storage.data() + pos));
+  switch (funcN) {
+  case libc::PUTS:
+    libc::puts(regs, storage);
     return;
-  }
-  if (funcN == libc::Scanf) {
+  case libc::SCANF:
     libc::scanf(regs, storage);
     return;
-  }
-  if (funcN == libc::Printf) {
+  case libc::PRINTF:
     libc::printf(regs, storage);
     return;
+  case libc::PUTCHAR:
+    libc::putchar(regs);
+    return;
+  case libc::MALLOC:
+    libc::malloc(regs, storage, heapPtr);
+    return;
+  default:
+    assert(false);
   }
   assert(false);
 }
