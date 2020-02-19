@@ -309,6 +309,15 @@ void Interpreter::simulateLibCFunc(libc::Func funcN) {
   case libc::MEMCPY:
     libc::memcpy(regs, storage);
     return;
+  case libc::STRLEN:
+    libc::strlen(regs, storage);
+    return;
+  case libc::STRCPY:
+    libc::strcpy(regs, storage);
+    return;
+  case libc::MEMSET:
+    libc::memset(regs, storage);
+    return;
   default:
     assert(false);
   }

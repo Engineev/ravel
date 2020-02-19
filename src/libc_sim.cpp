@@ -95,4 +95,24 @@ void libc::memcpy(std::array<std::int32_t, 32> &regs,
   std::memcpy(storage.data() + dest, storage.data() + src, cnt);
 }
 
+void libc::strlen(std::array<std::int32_t, 32> &regs,
+                  const std::vector<std::byte> &storage) {
+  std::size_t strPos = regs[10];
+  regs[10] = std::strlen((char *)storage.data() + strPos);
+}
+
+void libc::strcpy(std::array<std::int32_t, 32> &regs,
+                  std::vector<std::byte> &storage) {
+  std::size_t dest = regs[10], src = regs[11];
+  std::strcpy((char *)storage.data() + dest, (char *)storage.data() + src);
+}
+
+void libc::memset(std::array<std::int32_t, 32> &regs,
+                  std::vector<std::byte> &storage) {
+  std::size_t dest = regs[10];
+  int ch = regs[11];
+  std::size_t cnt = regs[12];
+  std::memset(storage.data() + dest, ch, cnt);
+}
+
 } // namespace ravel

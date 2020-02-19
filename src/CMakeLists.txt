@@ -1,4 +1,6 @@
 set(SOURCE main.cpp
+  argparse.cpp
+  argparse.h
   assembler.cpp
   assembler.h
   container_utils.h

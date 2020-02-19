@@ -26,4 +26,13 @@ void free(const std::array<std::int32_t, 32> &regs,
 void memcpy(std::array<std::int32_t, 32> &regs,
             std::vector<std::byte> &storage);
 
+void strlen(std::array<std::int32_t, 32> &regs,
+            const std::vector<std::byte> &storage);
+
+void strcpy(std::array<std::int32_t, 32> &regs,
+            std::vector<std::byte> &storage);
+
+void memset(std::array<std::int32_t, 32> &regs,
+            std::vector<std::byte> &storage);
+
 } // namespace ravel::libc
