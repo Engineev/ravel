@@ -10,7 +10,7 @@
 #include <iostream>
 #endif
 
-#include "libc_sim.h"
+#include "interpreter/libc_sim.h"
 #include "parser.h"
 
 namespace ravel {
@@ -30,15 +30,17 @@ const T &spc(const std::shared_ptr<inst::Instruction> &inst) {
 
 void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   // Do NOT use dynamic cast, it is too time-consuming
+  // TODO: use switch instead of a chain of if-else
   using Op = inst::Instruction::OpType;
 
-  struct Raii {
-    Raii(std::function<void()> func) : func(std::move(func)) {}
-    ~Raii() { func(); }
-    std::function<void()> func;
-  };
-  auto resetZero = Raii([this] { regs[0] = 0; });
-  auto pcAdd4 = Raii([this] { pc += 4; });
+  // has been moved to Interpreter::interpret()
+  // struct Raii {
+  //   Raii(std::function<void()> func) : func(std::move(func)) {}
+  //   ~Raii() { func(); }
+  //   std::function<void()> func;
+  // };
+  // auto resetZero = Raii([this] { regs[0] = 0; });
+  // auto pcAdd4 = Raii([this] { pc += 4; });
 
   // ImmConstruction
   if (inst->getOp() == inst::Instruction::LUI) {
@@ -273,9 +275,6 @@ void Interpreter::interpret() {
 
     auto instIdx = *(std::uint32_t *)(storage.data() + pc);
     auto &inst = interpretable.getInsts().at(instIdx);
-    if (inst->getComment() == "check") {
-      // std::cerr << "fuck\n";
-    }
 #ifdef PRINT_INSTS
     std::cerr << pc << ": " << toString(inst);
     if (!inst->getComment().empty())
@@ -283,22 +282,24 @@ void Interpreter::interpret() {
     std::cerr << std::endl;
 #endif
     simulate(inst);
+    regs[0] = 0;
+    pc += 4;
   }
 }
 
 void Interpreter::simulateLibCFunc(libc::Func funcN) {
   switch (funcN) {
   case libc::PUTS:
-    libc::puts(regs, storage);
+    libc::puts(regs, storage, out);
     return;
   case libc::SCANF:
-    libc::scanf(regs, storage);
+    libc::scanf(regs, storage, in);
     return;
   case libc::PRINTF:
-    libc::printf(regs, storage);
+    libc::printf(regs, storage, out);
     return;
   case libc::PUTCHAR:
-    libc::putchar(regs);
+    libc::putchar(regs, out);
     return;
   case libc::MALLOC:
     libc::malloc(regs, storage, heapPtr, malloced);

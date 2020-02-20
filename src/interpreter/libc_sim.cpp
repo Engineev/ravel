@@ -7,16 +7,17 @@
 
 #include "container_utils.h"
 
-namespace ravel {
+// IO
+namespace ravel::libc {
 
-void libc::puts(std::array<std::int32_t, 32> &regs,
-                std::vector<std::byte> &storage) {
+void puts(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
+          FILE *fp) {
   std::size_t pos = regs[10];
-  regs[10] = std::puts((const char *)(storage.data() + pos));
+  regs[10] = std::fputs((const char *)(storage.data() + pos), fp);
 }
 
-void libc::scanf(std::array<std::int32_t, 32> &regs,
-                 std::vector<std::byte> &storage) {
+void scanf(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
+           FILE *fp) {
   // TODO
   auto fmtStr = (const char *)(storage.data() + regs[10]);
   std::size_t nPercentSign = 0;
@@ -24,22 +25,22 @@ void libc::scanf(std::array<std::int32_t, 32> &regs,
     nPercentSign += *p == '%';
   switch (nPercentSign) {
   case 0:
-    regs[10] = std::scanf(fmtStr);
+    regs[10] = std::fscanf(fp, fmtStr);
     return;
   case 1:
-    regs[10] = std::scanf(fmtStr, storage.data() + regs[11]);
+    regs[10] = std::fscanf(fp, fmtStr, storage.data() + regs[11]);
     return;
   case 2:
-    regs[10] = std::scanf(fmtStr, storage.data() + regs[11],
-                          storage.data() + regs[12]);
+    regs[10] = std::fscanf(fp, fmtStr, storage.data() + regs[11],
+                           storage.data() + regs[12]);
     return;
   default:
     assert(false);
   }
 }
 
-void libc::printf(std::array<std::int32_t, 32> &regs,
-                  const std::vector<std::byte> &storage) {
+void printf(std::array<std::int32_t, 32> &regs,
+            const std::vector<std::byte> &storage, FILE *fp) {
   auto fmtStr = std::string((const char *)(storage.data() + regs[10]));
   std::size_t nSuccess = 0;
   std::size_t curArg = 0;
@@ -48,26 +49,30 @@ void libc::printf(std::array<std::int32_t, 32> &regs,
       ++i;
       assert(i != fmtStr.size());
       assert(fmtStr[i] == 'n'); // TODO
-      std::putchar('\n');
+      std::putc('\n', fp);
       continue;
     }
     if (fmtStr[i] == '%') {
       ++i;
       assert(i != fmtStr.size());
       assert(fmtStr[i] == 'd'); // TODO
-      std::printf("%d", regs[11 + curArg]);
+      std::fprintf(fp, "%d", regs[11 + curArg]);
       ++curArg;
       ++nSuccess;
       continue;
     }
-    std::putchar(fmtStr[i]);
+    std::putc(fmtStr[i], fp);
   }
   regs[10] = nSuccess;
 }
 
-void libc::putchar(std::array<std::int32_t, 32> &regs) {
-  regs[10] = std::putchar(regs[10]);
+void putchar(std::array<std::int32_t, 32> &regs, FILE *fp) {
+  regs[10] = std::putc(regs[10], fp);
 }
+
+} // namespace ravel::libc
+
+namespace ravel {
 
 void libc::malloc(std::array<std::int32_t, 32> &regs,
                   const std::vector<std::byte> &storage, std::size_t &heapPtr,

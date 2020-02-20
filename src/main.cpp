@@ -1,48 +1,41 @@
-#include <chrono>
-#include <fstream>
 #include <iostream>
 #include <unordered_map>
 
-#include "argparse.h"
-#include "assembler.h"
-#include "interpreter.h"
-#include "linker.h"
+#include "simulator.h"
+
+namespace ravel {
+
+Config parseArgs(const std::vector<std::string> &args) {
+  Config config{};
+  for (auto iter = args.begin() + 1; iter != args.end(); ++iter) {
+    auto arg = *iter;
+    if (arg.front() != '-') {
+      config.sources.emplace_back(arg);
+      continue;
+    }
+    if (arg == "--oj-mode") {
+      config.sources = {"test.s", "builtin.s"};
+      config.inputFile = "test.in";
+      config.outputFile = "test.out";
+      return config;
+    }
+    assert(false);
+  }
+  return config;
+}
+
+} // namespace ravel
 
 int main(int argc, char *argv[]) {
   using namespace ravel;
-
-  auto startTp = std::chrono::high_resolution_clock::now();
-
   std::vector<std::string> args;
+  args.reserve(argc);
   for (int i = 0; i < argc; ++i)
     args.emplace_back(argv[i]);
   Config config = parseArgs(args);
 
-  std::vector<ObjectFile> objs;
-  for (auto &file : config.files) {
-    std::ifstream t(file);
-    std::string src((std::istreambuf_iterator<char>(t)),
-                    std::istreambuf_iterator<char>());
-    auto obj = assemble(src);
-    objs.emplace_back(std::move(obj));
-  }
-
-  auto buildEndTp = std::chrono::high_resolution_clock::now();
-  auto time = std::chrono::duration_cast<std::chrono::milliseconds>(buildEndTp -
-                                                                    startTp)
-                  .count();
-  std::cerr << "\nBuild finished in " << time << " ms\n";
-
-  auto interp = link(objs);
-  Interpreter interpreter{interp};
-  interpreter.interpret();
-  std::cerr << "\nProcess finished with exit code "
-            << interpreter.getReturnCode() << std::endl;
-  auto endTp = std::chrono::high_resolution_clock::now();
-  time =
-      std::chrono::duration_cast<std::chrono::milliseconds>(endTp - buildEndTp)
-          .count();
-  std::cerr << "\nInterpretation finished in " << time << " ms\n";
+  Simulator simulator(config);
+  simulator.simulate();
 
   return 0;
 }

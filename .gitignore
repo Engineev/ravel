@@ -2,4 +2,7 @@
 cmake-build-*/
 .DS_Store
 build/
-test/c/test.s
+test.s
+builtin.s
+test.in
+test.out

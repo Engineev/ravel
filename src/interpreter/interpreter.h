@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <unordered_set>
 
 #include "interpretable.h"
@@ -12,8 +13,8 @@ namespace ravel {
 
 class Interpreter {
 public:
-  explicit Interpreter(const Interpretable &interpretable)
-      : interpretable(interpretable) {}
+  Interpreter(const Interpretable &interpretable, FILE *in, FILE *out)
+      : interpretable(interpretable), in(in), out(out) {}
 
   void interpret();
 
@@ -36,6 +37,9 @@ private:
   std::vector<std::byte> storage;
   std::size_t heapPtr;
   std::unordered_set<std::size_t> malloced;
+
+  FILE *in;
+  FILE *out;
 };
 
 } // namespace ravel
