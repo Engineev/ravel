@@ -15,17 +15,15 @@ namespace ravel {
 //     instructions, initialized and uninitialized data. Note that we do not
 //     use the RISC-V instruction encoding here. See the next section for
 //     details.
-// * std::vector<std::pair<std::shared_ptr<inst::Instruction>, std::size_t>>
-//     instsAndPos: instructions and their corresponding position in [storage].
-// * std::unordered_map<std::string, std::size_t> globalLabel2Pos: the map
-//     from global labels to their position in [storage].
+// * std::unordered_map<std::string, std::size_t> symbolTable
+// * std::unordered_set<std::string> globalSymbol
 // * std::unordered_map<inst::Instruction::Id, std::string>
 //     containsExternalLabel: In the object file, some instructions still
 //     contain external labels which are going to be resolved in the linking
 //     phrase. This map contains their ID and the name of label.
-// * std::unordered_set<inst::Instruction::Id> containsRelocationFunc: Some
-//     instructions contains relocation functions such as %hi. So the
-//     immediate in the instruction should be recomputed.
+// * std::unordered_map<inst::Instruction::Id, std::string>
+//     containsRelocationFunc: Some instructions contains relocation functions
+//     such as %hi and this map contains them and the relocation functions.
 //
 // The instruction encoding scheme:
 //     Instructions are represented by their position in [instAndPos]. Namely,
@@ -40,44 +38,46 @@ public:
       std::vector<std::byte> storage,
       std::vector<std::pair<std::shared_ptr<inst::Instruction>, std::size_t>>
           instsAndPos,
-      std::unordered_map<std::string, std::size_t> globalLabel2Pos,
+      std::unordered_map<std::string, std::size_t> symbolTable,
+      std::unordered_set<std::string> globalSymbol,
       std::unordered_map<inst::Instruction::Id, std::string>
           containsExternalLabel,
-      std::unordered_set<inst::Instruction::Id> containsRelocationFunc)
+      std::unordered_map<inst::Instruction::Id, std::string>
+          containsRelocationFunc)
       : storage(std::move(storage)), instsAndPos(std::move(instsAndPos)),
-        globalLabel2Pos(std::move(globalLabel2Pos)),
+        symbolTable(std::move(symbolTable)),
+        globalSymbol(std::move(globalSymbol)),
         containsExternalLabel(std::move(containsExternalLabel)),
         containsRelocationFunc(std::move(containsRelocationFunc)) {}
 
   const std::vector<std::byte> &getStorage() const { return storage; }
-
   const std::vector<std::pair<std::shared_ptr<inst::Instruction>, std::size_t>>
       &getInstsAndPos() const {
     return instsAndPos;
   }
-
-  const std::unordered_map<std::string, std::size_t> &
-  getGlobalLabel2Pos() const {
-    return globalLabel2Pos;
+  const std::unordered_map<std::string, std::size_t> &getSymbolTable() const {
+    return symbolTable;
   }
-
+  const std::unordered_set<std::string> &getGlobalSymbol() const {
+    return globalSymbol;
+  }
+  const std::unordered_map<inst::Instruction::Id, std::string> &
+  getContainsRelocationFunc() const {
+    return containsRelocationFunc;
+  }
   const std::unordered_map<inst::Instruction::Id, std::string> &
   getContainsExternalLabel() const {
     return containsExternalLabel;
-  }
-
-  const std::unordered_set<inst::Instruction::Id> &
-  getContainsRelocationFunc() const {
-    return containsRelocationFunc;
   }
 
 private:
   std::vector<std::byte> storage;
   std::vector<std::pair<std::shared_ptr<inst::Instruction>, std::size_t>>
       instsAndPos;
-  std::unordered_map<std::string, std::size_t> globalLabel2Pos;
+  std::unordered_map<std::string, std::size_t> symbolTable;
+  std::unordered_set<std::string> globalSymbol;
   std::unordered_map<inst::Instruction::Id, std::string> containsExternalLabel;
-  std::unordered_set<inst::Instruction::Id> containsRelocationFunc;
+  std::unordered_map<inst::Instruction::Id, std::string> containsRelocationFunc;
 };
 
 } // namespace ravel

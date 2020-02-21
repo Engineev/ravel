@@ -19,8 +19,6 @@
 #include "object_file.h"
 #include "parser.h"
 
-// TODO: mul
-
 // Here, we describe the implementation of the assembler. For details about
 // the resulted [ObjectFile], see object_file.h.
 //     An [Assembler] takes a vector of string where each string represents a
@@ -183,9 +181,7 @@ private:
       return;
     }
     if (tokens[0] == ".section") {
-      auto secNames = split(tokens.at(1), ".");
-
-      auto sec = "." + secNames.at(0);
+      auto sec = parseSectionDerivative(line);
       if (sec == ".text")
         curSection = Section ::TEXT;
       else if (sec == ".data")
@@ -291,14 +287,17 @@ public:
     for (auto &line : src) {
       auto tokens = tokenize(line);
 
-      if (line == ".text" ||
-          (tokens.at(0) == ".section" && tokens.at(1) == ".text")) {
+      if (line == ".text") {
         isText = true;
         continue;
       }
-      if (line == ".data" || line == ".rodata" || line == ".bss" ||
-          tokens.at(0) == ".section") {
+      if (line == ".data" || line == ".rodata" || line == ".bss") {
         isText = false;
+        continue;
+      }
+      if (tokens.at(0) == ".section") {
+        auto secName = parseSectionDerivative(line);
+        isText = secName == ".text";
         continue;
       }
       if (!isText)
@@ -325,54 +324,6 @@ private:
       return;
     }
     handleInstruction(line);
-  }
-
-  std::string translatePseudoInst(const std::string &line) const {
-    using namespace std::string_literals;
-    auto tokens = tokenize(line);
-    assert(!tokens.empty());
-    if (tokens[0] == "nop") {
-      return "addi x0, x0, 0"s;
-    }
-    if (tokens[0] == "li") {
-      assert(false);
-    }
-    if (tokens[0] == "mv") {
-      return "addi "s + tokens.at(1) + "," + tokens.at(2) + ",0";
-    }
-    if (tokens[0] == "not") {
-      return "xori "s + tokens.at(1) + ", " + tokens.at(2) + ", -1";
-    }
-    if (tokens[0] == "neg") {
-      return "sub "s + tokens.at(1) + ", x0, " + tokens.at(2);
-    }
-
-    static const std::unordered_map<std::string, std::string> branchPair = {
-        {"bgt", "blt"}, {"ble", "bge"}, {"bgtu", "bltu"}, {"bleu", "bgeu"}};
-    if (auto op = get(branchPair, tokens[0])) {
-      return op.value() + " " + tokens.at(2) + "," + tokens.at(1) + "," +
-             tokens.at(3);
-    }
-
-    if (tokens[0] == "j") {
-      return "jal x0, "s + tokens.at(1);
-    }
-    if (tokens[0] == "jal" && tokens.size() == 2) {
-      return "jal x1, "s + tokens[1];
-    }
-    if (tokens[0] == "jr") {
-      return "jalr x0, 0(" + tokens.at(1) + ")";
-    }
-    if (tokens[0] == "jalr" && tokens.size() == 2) {
-      return "jalr x1, 0(" + tokens.at(1) + ")";
-    }
-    if (tokens[0] == "ret") {
-      return "jalr x0, 0(x1)"s;
-    }
-    if (tokens[0] == "call" || tokens[0] == "tail") {
-      assert(false && "use handleCall to handle call/tail ");
-    }
-    return line;
   }
 
   void handleInstruction(const std::string &line) {
@@ -456,22 +407,6 @@ private:
     curPos += 4;
   }
 
-  // e.g. 0xfff, 123, %hi(.LC0)
-  std::pair<std::uint32_t, bool /*relocation*/>
-  parseImm(const std::string &str) const {
-    if (str.front() != '%')
-      return {std::stoi(str, nullptr, 0), false};
-    // e.g. %hi(.LC0)
-    auto label = str.substr(4);
-    label.pop_back();
-    std::uint32_t addr = labelName2Pos.at({label, ""});
-    if (str.substr(1, 2) == "hi") {
-      return {addr >> 12, true};
-    }
-    assert(str.substr(1, 2) == "lo");
-    return {addr & 0xfff, true};
-  }
-
   std::shared_ptr<inst::Instruction>
   parseInst(const std::vector<std::string> &tokens) {
     // const std::size_t DummyOffset = 0;
@@ -482,9 +417,10 @@ private:
     if (op == inst::Instruction::LUI || op == inst::Instruction::AUIPC) {
       auto dest = regName2regNumber(tokens.at(1));
       auto imm = parseImm(tokens.at(2));
-      auto inst = std::make_shared<inst::ImmConstruction>(op, dest, imm.first);
-      if (imm.second)
-        containsRelocationFunc.emplace(inst->getId());
+      auto inst =
+          std::make_shared<inst::ImmConstruction>(op, dest, imm.value_or(0));
+      if (!imm)
+        containsRelocationFunc.emplace(inst->getId(), tokens.at(2));
       return inst;
     }
 
@@ -503,9 +439,10 @@ private:
       auto dest = regName2regNumber(tokens.at(1));
       auto rc = regName2regNumber(tokens.at(2));
       auto imm = parseImm(tokens.at(3));
-      auto inst = std::make_shared<inst::ArithRegImm>(op, dest, rc, imm.first);
-      if (imm.second)
-        containsRelocationFunc.emplace(inst->getId());
+      auto inst =
+          std::make_shared<inst::ArithRegImm>(op, dest, rc, imm.value_or(0));
+      if (!imm)
+        containsRelocationFunc.emplace(inst->getId(), tokens.at(3));
       return inst;
     }
 
@@ -516,11 +453,10 @@ private:
       if (tokens.at(2).front() == '%') { // e.g. %lo(l)(a5)
         auto addrTokens = split(tokens[2], "()");
         assert(addrTokens.at(0) == "%lo");
-        auto [imm, relocation] = parseImm("%lo(" + addrTokens.at(1) + ")");
+        auto relocation = "%lo(" + addrTokens.at(1) + ")";
         auto base = regName2regNumber(addrTokens.back());
-        auto inst = std::make_shared<inst::MemAccess>(op, reg, base, imm);
-        assert(relocation);
-        containsRelocationFunc.emplace(inst->getId());
+        auto inst = std::make_shared<inst::MemAccess>(op, reg, base, 0);
+        containsRelocationFunc.emplace(inst->getId(), relocation);
         return inst;
       }
 
@@ -581,7 +517,7 @@ private:
   // When we encounter an instruction which contains an external label, then
   // we add the instruction ID and the label name into this.
   std::unordered_map<inst::Instruction::Id, std::string> containsExternalLabel;
-  std::unordered_set<inst::Instruction::Id> containsRelocationFunc;
+  std::unordered_map<inst::Instruction::Id, std::string> containsRelocationFunc;
 };
 
 } // namespace
@@ -595,11 +531,11 @@ ObjectFile assemble(const std::string &src) {
   auto [instsAndPos, containsExternalLabel, containsRelocationFunc] =
       AssemblerPass2(lines, labelName2Pos)();
 
-  std::unordered_map<std::string, std::size_t> globalSymbol2Pos;
-  for (auto &sym : globalSymbols)
-    globalSymbol2Pos.emplace(sym, labelName2Pos.at({sym, ""}));
-  return {std::move(storage), std::move(instsAndPos), globalSymbol2Pos,
-          std::move(containsExternalLabel), std::move(containsRelocationFunc)};
+  std::unordered_map<std::string, std::size_t> symTable;
+  for (auto &[label, pos] : labelName2Pos)
+    symTable.emplace(label.global, pos);
+  return {std::move(storage), std::move(instsAndPos), std::move(symTable),
+          globalSymbols,      containsExternalLabel,  containsRelocationFunc};
 }
 
 } // namespace ravel

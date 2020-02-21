@@ -1,18 +1,21 @@
 set(SOURCE main.cpp
-  assembler.cpp
-  assembler.h
-  container_utils.h
-  instructions.h
-  interpretable.h
+  assembler/assembler.cpp
+  assembler/assembler.h
+  assembler/object_file.h
+  assembler/parser.cpp
+  assembler/parser.h
+
   interpreter/interpreter.cpp
   interpreter/interpreter.h
   interpreter/libc_sim.cpp
   interpreter/libc_sim.h
-  linker.cpp
-  linker.h
-  object_file.h
-  parser.cpp
-  parser.h
+
+  linker/interpretable.h
+  linker/linker.cpp
+  linker/linker.h
+
+  container_utils.h
+  instructions.h
   simulator.cpp
   simulator.h
   )

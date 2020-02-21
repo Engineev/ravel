@@ -10,8 +10,8 @@
 #include <iostream>
 #endif
 
+#include "assembler/parser.h"
 #include "interpreter/libc_sim.h"
-#include "parser.h"
 
 namespace ravel {
 namespace {
@@ -253,8 +253,8 @@ void Interpreter::load() {
   storage.insert(storage.end(), interpretable.getStorage().begin(),
                  interpretable.getStorage().end());
   heapPtr = storage.size();
-  std::size_t MaxStorageSize = 512 * 1024 * 1024;
-  assert(storage.size() < MaxStorageSize / 2);
+  std::size_t MaxStorageSize = 256 * 1024 * 1024;
+  assert(storage.size() < 3 * MaxStorageSize / 4);
   storage.resize(MaxStorageSize);
   pc = Interpretable::Start;
   regs.at(regName2regNumber("sp")) = MaxStorageSize;

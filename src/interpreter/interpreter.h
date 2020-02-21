@@ -7,7 +7,7 @@
 #include <cstdio>
 #include <unordered_set>
 
-#include "interpretable.h"
+#include "linker/interpretable.h"
 
 namespace ravel {
 

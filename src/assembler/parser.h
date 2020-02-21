@@ -44,4 +44,13 @@ std::pair<std::size_t, int> parseBaseOffset(const std::string &str);
 
 std::string toString(const std::shared_ptr<inst::Instruction> &inst);
 
+std::string translatePseudoInst(const std::string &line);
+
+// return the section name (e.g. .text)
+std::string parseSectionDerivative(const std::string &line);
+
+// e.g. 0x123, 123
+// return nullopt if str is a relocation function
+std::optional<std::uint32_t> parseImm(const std::string &str);
+
 } // namespace ravel
