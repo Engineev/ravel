@@ -52,5 +52,20 @@ Local labels are not supported.
 RV32I base instruction set and RV32M standard extension are supported except 
 `FENCE`, `FENCE.I`, `ECALL`, `EBREAK`, and CSR instructions. 
 
+## Libc Functions
+Currently, the following libc functions are supported. If you need other libc
+functions, you may open an issue.
 
+| Function signature |
+|:---|
+|`puts`
+|`scanf` (partially supported)
+|`printf` (partially supported)
+|`putchar`
+|`malloc`
+|`free`
+|`memcpy`
+|`strlen`
+|`strcpy`
+|`memset`
 

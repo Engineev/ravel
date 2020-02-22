@@ -1,6 +1,7 @@
 #include "libc_sim.h"
 
 #include <cassert>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -18,25 +19,42 @@ void puts(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
 
 void scanf(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
            FILE *fp) {
-  // TODO
   auto fmtStr = (const char *)(storage.data() + regs[10]);
-  std::size_t nPercentSign = 0;
-  for (auto p = fmtStr; *p != 0; ++p)
-    nPercentSign += *p == '%';
-  switch (nPercentSign) {
-  case 0:
-    regs[10] = std::fscanf(fp, fmtStr);
-    return;
-  case 1:
-    regs[10] = std::fscanf(fp, fmtStr, storage.data() + regs[11]);
-    return;
-  case 2:
-    regs[10] = std::fscanf(fp, fmtStr, storage.data() + regs[11],
-                           storage.data() + regs[12]);
-    return;
-  default:
-    assert(false);
+  std::size_t assigned = 0;
+  bool succeeded = true;
+  for (auto iter = fmtStr; *iter != '\0' && succeeded; ++iter) {
+    auto fmtCh = *iter;
+    if (fmtCh == '\\') {
+      ++iter;
+      fmtCh = *iter;
+      assert(fmtCh == 'n');
+      fmtCh = '\n';
+    }
+
+    if (isspace(fmtCh)) {
+      int ch = std::fgetc(fp);
+      while (std::isspace(ch))
+        ch = std::getc(fp);
+      std::ungetc(ch, fp);
+      continue;
+    }
+
+    if (fmtCh == '%') {
+      ++iter;
+      fmtCh = *iter;
+      assert(fmtCh == 'd');
+      succeeded =
+          std::fscanf(fp, "%d", (int *)(storage.data() + regs[11 + assigned]));
+      assigned += succeeded;
+      continue;
+    }
+
+    char ch = std::fgetc(fp);
+    while (std::isspace(ch))
+      ch = std::fgetc(fp);
+    succeeded = ch == fmtCh;
   }
+  regs[10] = assigned;
 }
 
 void printf(std::array<std::int32_t, 32> &regs,

@@ -48,8 +48,8 @@ where the build of `gcc` is configured with
 ```
 then in most cases it is supported by the simulator.
 See [this](https://github.com/riscv/riscv-gnu-toolchain) for information on the
-risc-v toolchain. For detail on supported directives and instructions, see
-[this](./doc/support.md).  
+risc-v toolchain. For detail on supported directives, instructions and libc
+functions, see [this](./doc/support.md).  
 
 
 
