@@ -60,10 +60,13 @@ inline const std::unordered_map<std::string, Func> &getName2Pos() {
   using namespace std::string_literals;
   // clang-format off
   static std::unordered_map<std::string, Func> mp = {
+      // IO
       {"puts", PUTS},
       {"__isoc99_scanf", SCANF},
       {"printf", PRINTF},
       {"putchar", PUTCHAR},
+
+      // mem
       {"malloc", MALLOC},
       {"free", FREE},
       {"memcpy", MEMCPY},

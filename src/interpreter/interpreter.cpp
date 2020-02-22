@@ -32,6 +32,7 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   // Do NOT use dynamic cast, it is too time-consuming
   // TODO: use switch instead of a chain of if-else
   using Op = inst::Instruction::OpType;
+  auto op = inst->getOp();
 
   // has been moved to Interpreter::interpret()
   // struct Raii {
@@ -43,13 +44,14 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   // auto pcAdd4 = Raii([this] { pc += 4; });
 
   // ImmConstruction
-  if (inst->getOp() == inst::Instruction::LUI) {
+  if (op == inst::Instruction::LUI) {
+    ++instCnt.simple;
     auto &p = spc<inst::ImmConstruction>(inst);
     regs.at(p.getDest()) = (std::uint32_t)p.getImm() << 12;
     return;
   }
-  if (inst->getOp() == inst::ImmConstruction::AUIPC) {
-    // rd := pc + ( imm20 << 12 )
+  if (op == inst::ImmConstruction::AUIPC) {
+    ++instCnt.simple;
     auto &p = spc<inst::ImmConstruction>(inst);
     auto offset = (std::uint32_t)p.getImm() << 12;
     regs.at(p.getDest()) = pc + offset;
@@ -57,11 +59,12 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   }
 
   // ArithRegReg & ArithRegImm
-  if (bool isArithRegReg = inst::Instruction::ADD <= inst->getOp() &&
-                           inst->getOp() <= inst::Instruction::AND,
-      isArithRegImm = inst::Instruction::ADDI <= inst->getOp() &&
-                      inst->getOp() <= inst::Instruction::SRAI;
+  if (bool isArithRegReg =
+          inst::Instruction::ADD <= op && op <= inst::Instruction::AND,
+      isArithRegImm =
+          inst::Instruction::ADDI <= op && op <= inst::Instruction::SRAI;
       isArithRegReg || isArithRegImm) {
+    ++instCnt.simple;
     std::uint32_t rs1, rs2;
     std::size_t destNumber;
     if (isArithRegReg) {
@@ -77,7 +80,7 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     }
     auto &dest = regs.at(destNumber);
 
-    switch (inst->getOp()) {
+    switch (op) {
     case Op::ADD:
     case Op::ADDI:
       dest = rs1 + rs2;
@@ -122,11 +125,12 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   }
 
   // MemAccess
-  if (Op::LB <= inst->getOp() && inst->getOp() <= Op::SW) {
+  if (Op::LB <= op && op <= Op::SW) {
+    ++instCnt.mem;
     auto &p = spc<inst::MemAccess>(inst);
     std::byte *addr = storage.data() + regs.at(p.getBase()) + p.getOffset();
     assert(storage.data() <= addr && addr < storage.data() + storage.size());
-    switch (inst->getOp()) {
+    switch (op) {
     case Op::SB:
       *(std::uint8_t *)addr = regs.at(p.getReg());
       return;
@@ -156,7 +160,8 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     }
   }
 
-  if (inst->getOp() == Op::JAL) {
+  if (op == Op::JAL) {
+    ++instCnt.simple;
     auto &p = spc<inst::JumpLink>(inst);
     auto offset = p.getOffset() * 2;
     regs.at(p.getDest()) = pc + 4;
@@ -164,7 +169,8 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     return;
   }
 
-  if (inst->getOp() == Op::JALR) {
+  if (op == Op::JALR) {
+    ++instCnt.simple;
     auto &p = spc<inst::JumpLinkReg>(inst);
     regs.at(p.getDest()) = pc + 4;
     auto addr = regs.at(p.getBase()) + p.getOffset();
@@ -173,7 +179,8 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     return;
   }
 
-  if (Op::BEQ <= inst->getOp() && inst->getOp() <= Op::BGEU) {
+  if (Op::BEQ <= op && op <= Op::BGEU) {
+    ++instCnt.br;
     auto &p = spc<inst::Branch>(inst);
     std::int32_t rs1 = regs.at(p.getSrc1());
     std::int32_t rs2 = regs.at(p.getSrc2());
@@ -205,13 +212,18 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     return;
   }
 
-  if (Op::MUL <= inst->getOp() && inst->getOp() <= Op::REMU) {
+  if (Op::MUL <= op && op <= Op::REMU) {
+    if (Op::MUL <= op && op <= Op::MULHU)
+      ++instCnt.mul;
+    else
+      ++instCnt.div;
+
     auto &p = spc<inst::MArith>(inst);
     auto destNumber = p.getDest();
     auto &dest = regs.at(destNumber);
     std::uint32_t rs1 = regs.at(p.getSrc1());
     std::uint32_t rs2 = regs.at(p.getSrc2());
-    switch (inst->getOp()) {
+    switch (op) {
     case Op::MUL:
       dest = (std::int32_t)rs1 * (std::int32_t)rs2;
       return;
@@ -288,6 +300,13 @@ void Interpreter::interpret() {
 }
 
 void Interpreter::simulateLibCFunc(libc::Func funcN) {
+  if (libc::PUTS <= funcN && funcN <= libc::PUTCHAR)
+    ++instCnt.libcIO;
+  else if (libc::MALLOC <= funcN && funcN <= libc::MEMSET)
+    ++instCnt.libcMem;
+  else
+    assert(false);
+
   switch (funcN) {
   case libc::PUTS:
     libc::puts(regs, storage, out);

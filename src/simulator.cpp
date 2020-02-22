@@ -39,7 +39,10 @@ std::pair<FILE *, FILE *> Simulator::getIOFile() {
 }
 
 void Simulator::printResult(const Interpreter &interpreter) const {
-  std::cout << "\nexit code: " << interpreter.getReturnCode() << std::endl;
+  std::cout << std::endl;
+  std::cout << "exit code: " << interpreter.getReturnCode() << std::endl;
+  std::cout << "memory leak: " << interpreter.hasMemoryLeak() << std::endl;
+  std::cout << "time: " << interpreter.getTimeConsumed() << std::endl;
 }
 
 void Simulator::simulate() {
@@ -53,7 +56,7 @@ void Simulator::simulate() {
   });
 
   auto starTp = std::chrono::high_resolution_clock::now();
-  Interpreter interpreter{interp, in, out};
+  Interpreter interpreter{interp, in, out, InstWeight()};
   interpreter.interpret();
   printResult(interpreter);
 

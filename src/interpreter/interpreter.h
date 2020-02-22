@@ -11,16 +11,41 @@
 
 namespace ravel {
 
+struct InstWeight {
+  InstWeight() = default;
+  InstWeight(std::size_t simple, std::size_t mul, std::size_t br,
+             std::size_t div, std::size_t mem)
+      : simple(simple), mul(mul), br(br), div(div), mem(mem) {}
+
+  std::size_t simple = 1;
+  std::size_t mul = 4;
+  std::size_t br = 8;
+  std::size_t div = 8;
+  std::size_t mem = 64;
+  // TODO: cache
+  std::size_t libcIO = 64;
+  std::size_t libcMem = 128;
+};
+
 class Interpreter {
 public:
-  Interpreter(const Interpretable &interpretable, FILE *in, FILE *out)
-      : interpretable(interpretable), in(in), out(out) {}
+  Interpreter(const Interpretable &interpretable, FILE *in, FILE *out,
+              InstWeight instWeight)
+      : interpretable(interpretable), in(in), out(out), instWeight(instWeight) {
+  }
 
   void interpret();
 
   std::uint32_t getReturnCode() const;
 
   bool hasMemoryLeak() const { return !malloced.empty(); }
+
+  std::size_t getTimeConsumed() const {
+    return instCnt.simple * instWeight.simple + instCnt.mul * instWeight.mul +
+           instCnt.br * instWeight.br + instCnt.div * instWeight.div +
+           instCnt.mem * instWeight.mem + instCnt.libcIO * instWeight.libcIO +
+           instCnt.libcMem * instWeight.libcMem;
+  }
 
 private:
   void load();
@@ -40,6 +65,16 @@ private:
 
   FILE *in;
   FILE *out;
+  InstWeight instWeight;
+  struct InstCnt {
+    std::size_t simple = 1;
+    std::size_t mul = 4;
+    std::size_t br = 8;
+    std::size_t div = 8;
+    std::size_t mem = 64;
+    std::size_t libcIO = 64;
+    std::size_t libcMem = 128;
+  } instCnt;
 };
 
 } // namespace ravel
