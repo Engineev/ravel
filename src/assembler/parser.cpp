@@ -306,46 +306,73 @@ std::string regNumber2regName(const std::size_t &num) {
 std::string translatePseudoInst(const std::string &line) {
   using namespace std::string_literals;
   auto tokens = tokenize(line);
-  assert(!tokens.empty());
-  if (tokens[0] == "nop") {
+  auto opname = tokens.at(0);
+  if (opname == "nop") {
     return "addi x0, x0, 0"s;
   }
-  if (tokens[0] == "li") {
+  if (opname == "li") {
     assert(false);
   }
-  if (tokens[0] == "mv") {
+  if (opname == "mv") {
     return "addi "s + tokens.at(1) + "," + tokens.at(2) + ",0";
   }
-  if (tokens[0] == "not") {
+  if (opname == "not") {
     return "xori "s + tokens.at(1) + ", " + tokens.at(2) + ", -1";
   }
-  if (tokens[0] == "neg") {
+  if (opname == "neg") {
     return "sub "s + tokens.at(1) + ", x0, " + tokens.at(2);
+  }
+  if (opname == "seqz") {
+    return "sltiu " + tokens.at(1) + ", " + tokens.at(2) + ", 1";
+  }
+  if (opname == "snez") {
+    return "sltu " + tokens.at(1) + ", x0, " + tokens.at(2);
+  }
+  if (opname == "sltz") {
+    return "slt " + tokens.at(1) + ", " + tokens.at(2) + ", x0";
+  }
+  if (opname == "sgtz") {
+    return "slt " + tokens.at(1) + ", x0, " + tokens.at(2);
+  }
+
+  if (opname == "sgt") {
+    return "slt " + tokens.at(1) + ", " + tokens.at(3) + ", " + tokens.at(2);
   }
 
   static const std::unordered_map<std::string, std::string> branchPair = {
       {"bgt", "blt"}, {"ble", "bge"}, {"bgtu", "bltu"}, {"bleu", "bgeu"}};
-  if (auto op = get(branchPair, tokens[0])) {
+  if (auto op = get(branchPair, opname)) {
     return op.value() + " " + tokens.at(2) + "," + tokens.at(1) + "," +
            tokens.at(3);
   }
+  if (opname.front() == 'b' && opname.back() == 'z') {
+    opname.pop_back();
+    bool reverse = isIn(branchPair, opname);
+    if (reverse)
+      opname = branchPair.at(opname);
+    auto rs1 = tokens.at(1);
+    auto rs2 = "x0"s;
+    if (reverse)
+      std::swap(rs1, rs2);
+    return opname + " " + rs1 + ", " + rs2 + ", " + tokens.at(2);
+  }
 
-  if (tokens[0] == "j") {
+  if (opname == "j") {
     return "jal x0, "s + tokens.at(1);
   }
-  if (tokens[0] == "jal" && tokens.size() == 2) {
+  if (opname == "jal" && tokens.size() == 2) {
     return "jal x1, "s + tokens[1];
   }
-  if (tokens[0] == "jr") {
+  if (opname == "jr") {
     return "jalr x0, 0(" + tokens.at(1) + ")";
   }
-  if (tokens[0] == "jalr" && tokens.size() == 2) {
+  if (opname == "jalr" && tokens.size() == 2) {
     return "jalr x1, 0(" + tokens.at(1) + ")";
   }
-  if (tokens[0] == "ret") {
+  if (opname == "ret") {
     return "jalr x0, 0(x1)"s;
   }
-  if (tokens[0] == "call" || tokens[0] == "tail") {
+  if (opname == "call" || opname == "tail") {
     assert(false && "use handleCall to handle call/tail ");
   }
   return line;
@@ -355,6 +382,10 @@ std::string parseSectionDerivative(const std::string &line) {
   auto tokens = split(line, " \t,.");
   assert(tokens.at(0) == "section");
   auto name = tokens.at(1);
+  if (name.front() == 's') {
+    assert(name == "sdata" || name == "srodata" || name == "sbss");
+    name = name.substr(1);
+  }
   return "." + name;
 }
 
@@ -362,6 +393,21 @@ std::optional<std::uint32_t> parseImm(const std::string &str) {
   if (str.front() == '%')
     return std::nullopt;
   return std::stoul(str, nullptr, 0);
+}
+
+std::string handleEscapeCharacters(const std::string &str) {
+  std::string res;
+  for (std::size_t i = 0; i < str.length(); ++i) {
+    if (str[i] != '\\') {
+      res.push_back(str[i]);
+      continue;
+    }
+    ++i;
+    assert(i < str.length());
+    assert(str[i] == 'n');
+    res.push_back('\n');
+  }
+  return res;
 }
 
 } // namespace ravel

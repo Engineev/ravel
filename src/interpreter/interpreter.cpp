@@ -275,8 +275,9 @@ void Interpreter::load() {
 void Interpreter::interpret() {
   load();
   while (pc != Interpretable::End) {
-    assert(0 <= pc && pc < storage.size());
-    if (Interpretable::LibcFuncStart <= pc && pc < Interpretable::LibcFuncEnd) {
+    assert(0 <= pc && (std::uint32_t)pc < storage.size());
+    if (Interpretable::LibcFuncStart <= (std::uint32_t)pc &&
+        (std::uint32_t)pc < Interpretable::LibcFuncEnd) {
 #ifdef PRINT_INSTS
       std::cerr << pc << ": call libc-" << pc << std::endl;
 #endif
@@ -314,6 +315,8 @@ void Interpreter::simulateLibCFunc(libc::Func funcN) {
   case libc::SCANF:
     libc::scanf(regs, storage, in);
     return;
+  case libc::SSCANF:
+    libc::sscanf(regs, storage);
   case libc::PRINTF:
     libc::printf(regs, storage, out);
     return;
@@ -334,6 +337,12 @@ void Interpreter::simulateLibCFunc(libc::Func funcN) {
     return;
   case libc::STRCPY:
     libc::strcpy(regs, storage);
+    return;
+  case libc::STRCAT:
+    libc::strcat(regs, storage);
+    return;
+  case libc::STRCMP:
+    libc::strcmp(regs, storage);
     return;
   case libc::MEMSET:
     libc::memset(regs, storage);

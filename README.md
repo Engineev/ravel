@@ -8,7 +8,7 @@ dev: [![Build Status](https://travis-ci.com/Engineev/ravel.svg?token=t7LhMb4BZCM
 **ravel** is a RISC-V simulator written for the compiler course taught at 
 Shanghai Jiao Tong University, where the students are typically second-year
 undergraduates at ACM Honers Class. In this course, students are required to
-implement a toy compiler that turn Mx* (a toy language used in the course) to
+implement a toy compiler that turns Mx* (a toy language used in the course) to
 RISC-V assembly. This simulator is used to test the correctness of the 
 implementation and measure the quality of the optimization.  
 

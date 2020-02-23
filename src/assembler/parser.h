@@ -53,4 +53,6 @@ std::string parseSectionDerivative(const std::string &line);
 // return nullopt if str is a relocation function
 std::optional<std::uint32_t> parseImm(const std::string &str);
 
+std::string handleEscapeCharacters(const std::string &str);
+
 } // namespace ravel

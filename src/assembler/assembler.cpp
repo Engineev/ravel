@@ -207,6 +207,12 @@ private:
       storage.resize(roundUp(storage.size(), alignment));
       return;
     }
+    if (tokens[0] == ".p2align") {
+      auto p = std::stoul(tokens.at(1));
+      auto alignment = 1 << p;
+      storage.resize(roundUp(storage.size(), alignment));
+      return;
+    }
     if (tokens[0] == ".globl") {
       globalSymbols.emplace(tokens.at(1));
       return;
@@ -228,10 +234,11 @@ private:
       return;
     }
 
-    if (tokens.at(0) == ".string") {
+    if (tokens.at(0) == ".string" || tokens.at(0) == ".asciz") {
       assert(curSection == Section::RODATA);
       auto str = tokens.at(1).substr(1);
       str.pop_back();
+      str = handleEscapeCharacters(str);
       auto curPos = storage.size();
       storage.resize(storage.size() + str.size() + 1);
       std::strcpy((char *)(storage.data() + curPos), str.c_str());
@@ -239,7 +246,7 @@ private:
       return;
     }
     if (tokens.at(0) == ".word") {
-      assert(curSection == Section::RODATA || curSection == Section::DATA);
+      assert(curSection != Section::TEXT);
       std::int32_t val = std::stoi(tokens.at(1), nullptr, 0);
       auto curPos = storage.size();
       storage.resize(storage.size() + 4);
@@ -378,6 +385,8 @@ private:
     jalr = "jalr "s + (tokens[0] == "call" ? "x1"s : "x0"s) + ", ";
 
     auto funcName = tokens.at(1);
+    if (funcName == "__isoc99_scanf")
+      funcName = "scanf";
 
     auto offsetOpt = getOffset(funcName);
     if (!offsetOpt) { // an external function

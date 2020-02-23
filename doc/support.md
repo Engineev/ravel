@@ -6,7 +6,8 @@ Reference: https://rv8.io/asm.html
 
 Unsupported directives will be ignored. 
 In `.section` directives, arguments like `.rodata.str1.4,"aMS",@progbits,1`
-will be treated as `.rodata`. 
+will be treated as `.rodata`. Section names such as `.sdata` will be treated 
+as `.data`
 
 | Directive | Arguments  
 |:---       |:---        
@@ -16,10 +17,12 @@ will be treated as `.rodata`.
 |`.bss`     |
 |`.section` | {`.text`, `.data`, `.rodata`, `.bss`}
 |`.align`   | {`2`, `4`, `8`, `16`}
+|`.p2align` | {`1`, `2`, `3`, `4`}
 |`.globl`   | symbol
 |`.comm`    | symbol, size, align
 |`.zero`    | integer
 |`.string`  | string
+|`.asciz`   | string
 |`.word`    | integer
 
 ## Labels
@@ -41,6 +44,8 @@ Local labels are not supported.
 | `mv  rd, rs`
 | `not rd, rs`
 | `neg rd, rs`
+| `{seqz, snez, sltz, sgtz} rd, rs`
+| `{beqz, bnez, blez, bgez, bltz, btz} rs, offset`
 | `{bgt, ble, bgtu, bleu} rs, rt, offset`
 | `j   offset`
 | `jr  offset`
@@ -60,6 +65,7 @@ functions, you may open an issue.
 |:---|
 |`puts`
 |`scanf` (partially supported)
+|`sscanf` (partially supported)
 |`printf` (partially supported)
 |`putchar`
 |`malloc`
@@ -67,5 +73,7 @@ functions, you may open an issue.
 |`memcpy`
 |`strlen`
 |`strcpy`
+|`strcat`
+|`strcmp`
 |`memset`
 

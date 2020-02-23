@@ -15,6 +15,9 @@ void puts(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
 void scanf(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
            FILE *fp);
 
+void sscanf(std::array<std::int32_t, 32> &regs,
+            std::vector<std::byte> &storage);
+
 void printf(std::array<std::int32_t, 32> &regs,
             const std::vector<std::byte> &storage, FILE *fp);
 
@@ -38,6 +41,12 @@ void strlen(std::array<std::int32_t, 32> &regs,
             const std::vector<std::byte> &storage);
 
 void strcpy(std::array<std::int32_t, 32> &regs,
+            std::vector<std::byte> &storage);
+
+void strcat(std::array<std::int32_t, 32> &regs,
+            std::vector<std::byte> &storage);
+
+void strcmp(std::array<std::int32_t, 32> &regs,
             std::vector<std::byte> &storage);
 
 void memset(std::array<std::int32_t, 32> &regs,

@@ -46,14 +46,18 @@ namespace libc {
 enum Func {
   PUTS = 12,
   SCANF = 14,
-  PRINTF = 16,
-  PUTCHAR = 18,
-  MALLOC = 20,
-  FREE = 22,
-  MEMCPY = 24,
-  STRLEN = 26,
-  STRCPY = 28,
-  MEMSET = 30,
+  SSCANF = 16,
+  PRINTF = 18,
+  PUTCHAR = 20,
+
+  MALLOC = 22,
+  FREE = 24,
+  MEMCPY = 26,
+  STRLEN = 28,
+  STRCPY = 30,
+  STRCAT = 32,
+  STRCMP = 34,
+  MEMSET = 36,
 };
 
 inline const std::unordered_map<std::string, Func> &getName2Pos() {
@@ -62,7 +66,8 @@ inline const std::unordered_map<std::string, Func> &getName2Pos() {
   static std::unordered_map<std::string, Func> mp = {
       // IO
       {"puts", PUTS},
-      {"__isoc99_scanf", SCANF},
+      {"scanf", SCANF},
+      {"sscanf", SSCANF},
       {"printf", PRINTF},
       {"putchar", PUTCHAR},
 
@@ -72,6 +77,8 @@ inline const std::unordered_map<std::string, Func> &getName2Pos() {
       {"memcpy", MEMCPY},
       {"strlen", STRLEN},
       {"strcpy", STRCPY},
+      {"strcat", STRCAT},
+      {"strcmp", STRCMP},
       {"memset", MEMSET},
   };
   // clang-format on
