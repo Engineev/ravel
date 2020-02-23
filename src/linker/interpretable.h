@@ -67,7 +67,9 @@ inline const std::unordered_map<std::string, Func> &getName2Pos() {
       // IO
       {"puts", PUTS},
       {"scanf", SCANF},
+      {"__isoc99_scanf", SCANF},
       {"sscanf", SSCANF},
+      {"__isoc99_sscanf", SSCANF},
       {"printf", PRINTF},
       {"putchar", PUTCHAR},
 

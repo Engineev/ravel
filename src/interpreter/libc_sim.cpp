@@ -15,6 +15,7 @@ void puts(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
           FILE *fp) {
   std::size_t pos = regs[10];
   regs[10] = std::fputs((const char *)(storage.data() + pos), fp);
+  std::fputc('\n', fp);
 }
 
 void scanf(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
@@ -42,9 +43,16 @@ void scanf(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
     if (fmtCh == '%') {
       ++iter;
       fmtCh = *iter;
-      assert(fmtCh == 'd');
-      succeeded =
-          std::fscanf(fp, "%d", (int *)(storage.data() + regs[11 + assigned]));
+      //      assert(fmtCh == 'd');
+      if (fmtCh == 'd') {
+        succeeded = std::fscanf(fp, "%d",
+                                (int *)(storage.data() + regs[11 + assigned]));
+      } else if (fmtCh == 's') {
+        succeeded = std::fscanf(fp, "%s",
+                                (char *)(storage.data() + regs[11 + assigned]));
+      } else {
+        assert(false);
+      }
       assigned += succeeded;
       continue;
     }

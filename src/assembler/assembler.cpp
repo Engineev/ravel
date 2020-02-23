@@ -191,12 +191,12 @@ private:
       else if (sec == ".bss")
         curSection = Section ::BSS;
       else {
-        std::cerr << "Ignoring derivative: " << line << std::endl;
+        std::cerr << "Ignoring directive: " << line << std::endl;
       }
       return;
     }
     if (curSection == Section::ERROR) {
-      std::cerr << "Ignoring derivative: " << line << std::endl;
+      std::cerr << "Ignoring directive: " << line << std::endl;
       return;
     }
 
@@ -235,7 +235,7 @@ private:
     }
 
     if (tokens.at(0) == ".string" || tokens.at(0) == ".asciz") {
-      assert(curSection == Section::RODATA);
+      assert(curSection != Section::TEXT);
       auto str = tokens.at(1).substr(1);
       str.pop_back();
       str = handleEscapeCharacters(str);
@@ -254,7 +254,7 @@ private:
       return;
     }
 
-    std::cerr << "Ignoring derivative: " << line << std::endl;
+    std::cerr << "Ignoring directive: " << line << std::endl;
   }
 
   void handleLabel(std::string label) {
@@ -338,7 +338,7 @@ private:
     assert(!tokens.empty());
 
     // handle pseudo instructions
-    if (tokens[0] == "call") {
+    if (tokens[0] == "call" || tokens[0] == "tail") {
       handleCall(tokens);
       return;
     }
@@ -379,15 +379,12 @@ private:
   void handleCall(const std::vector<std::string> &tokens) {
     using namespace std::string_literals;
     assert(tokens.size() == 2);
-    assert(tokens[0] == "call");
+    assert(tokens[0] == "call" || tokens[0] == "tail");
     std::string auipc, jalr;
     auipc = "auipc x6, ";
     jalr = "jalr "s + (tokens[0] == "call" ? "x1"s : "x0"s) + ", ";
 
     auto funcName = tokens.at(1);
-    if (funcName == "__isoc99_scanf")
-      funcName = "scanf";
-
     auto offsetOpt = getOffset(funcName);
     if (!offsetOpt) { // an external function
       auipc += "0";

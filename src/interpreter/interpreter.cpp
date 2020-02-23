@@ -265,7 +265,7 @@ void Interpreter::load() {
   storage.insert(storage.end(), interpretable.getStorage().begin(),
                  interpretable.getStorage().end());
   heapPtr = storage.size();
-  std::size_t MaxStorageSize = 256 * 1024 * 1024;
+  std::size_t MaxStorageSize = 512 * 1024 * 1024;
   assert(storage.size() < 3 * MaxStorageSize / 4);
   storage.resize(MaxStorageSize);
   pc = Interpretable::Start;

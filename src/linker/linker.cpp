@@ -160,6 +160,9 @@ private:
       if (!isIn(containsUnresolvedSymbol, inst->getId()))
         continue;
       auto sym = containsUnresolvedSymbol.at(inst->getId());
+      if (!isIn(symbolTable, sym)) {
+        throw UndefinedSymbol(sym);
+      }
       auto symPos = symbolTable.at(sym);
       int offset = symPos - pos;
       if (inst->getOp() == inst::Instruction::AUIPC) {

@@ -50,7 +50,8 @@ Local labels are not supported.
 | `j   offset`
 | `jr  offset`
 | `ret`
-| `call offset` 
+| `call offset`
+| `tail offset` 
 
 ## Instructions
 
