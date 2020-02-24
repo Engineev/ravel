@@ -3,6 +3,8 @@
 #include <optional>
 #include <type_traits>
 
+namespace ravel {
+
 template <class Set, class V> bool isIn(const Set &s, const V &val) {
   return s.find(val) != s.end();
 }
@@ -20,3 +22,5 @@ std::optional<typename std::decay_t<Map>::mapped_type> get(Map &&mp,
     return std::nullopt;
   return mp.at(key);
 }
+
+} // namespace ravel

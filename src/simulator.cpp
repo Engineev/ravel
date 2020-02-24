@@ -43,6 +43,16 @@ void Simulator::printResult(const Interpreter &interpreter) const {
   std::cout << "exit code: " << interpreter.getReturnCode() << std::endl;
   std::cout << "memory leak: " << interpreter.hasMemoryLeak() << std::endl;
   std::cout << "time: " << interpreter.getTimeConsumed() << std::endl;
+  std::cout << "# instructions:\n";
+  auto iCnt = interpreter.getInstCnt();
+  std::cout << "# simple  = " << iCnt.simple
+            << " (including unconditional jump)\n";
+  std::cout << "# mul     = " << iCnt.mul << std::endl;
+  std::cout << "# br      = " << iCnt.br << std::endl;
+  std::cout << "# div     = " << iCnt.div << std::endl;
+  std::cout << "# mem     = " << iCnt.mem << std::endl;
+  std::cout << "# libcIO  = " << iCnt.libcIO << std::endl;
+  std::cout << "# libcMem = " << iCnt.libcMem << std::endl;
 }
 
 void Simulator::simulate() {
@@ -56,7 +66,7 @@ void Simulator::simulate() {
   });
 
   auto starTp = std::chrono::high_resolution_clock::now();
-  Interpreter interpreter{interp, in, out, InstWeight()};
+  Interpreter interpreter{interp, in, out, config.instWeight};
   interpreter.interpret();
   printResult(interpreter);
 

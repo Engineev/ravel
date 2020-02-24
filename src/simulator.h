@@ -17,6 +17,7 @@ struct Config {
   std::string inputFile;
   std::string outputFile;
   std::vector<std::string> sources;
+  InstWeight instWeight = InstWeight();
 };
 
 class Simulator {

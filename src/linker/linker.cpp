@@ -3,13 +3,13 @@
 #include <cassert>
 #include <cstddef>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "assembler/assembler.h"
 #include "assembler/parser.h"
 #include "container_utils.h"
+#include "error.h"
 
 namespace ravel {
 namespace {
@@ -161,7 +161,7 @@ private:
         continue;
       auto sym = containsUnresolvedSymbol.at(inst->getId());
       if (!isIn(symbolTable, sym)) {
-        throw UndefinedSymbol(sym);
+        throw UnresolvableSymbol(sym);
       }
       auto symPos = symbolTable.at(sym);
       int offset = symPos - pos;
@@ -180,12 +180,11 @@ private:
             jalr->getDest(), jalr->getBase(), (offset + 4) & 0xfff);
         continue;
       }
-      assert(false); // TODO
+      std::string errMsg = "Instruction " + toString(inst) +
+                           " containing an external symbol (" + sym +
+                           ") has not been supported.";
+      throw NotSupportedError(errMsg);
     }
-  }
-
-  std::size_t resolveSymbol(const std::string &label) const {
-    return symbolTable.at(label);
   }
 
 private:

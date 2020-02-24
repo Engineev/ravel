@@ -15,6 +15,7 @@ set(SOURCE main.cpp
   linker/linker.h
 
   container_utils.h
+  error.h
   instructions.h
   simulator.cpp
   simulator.h

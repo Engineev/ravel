@@ -1,7 +1,9 @@
 # ravel
-master: [![Build Status](https://travis-ci.com/Engineev/ravel.svg?token=t7LhMb4BZCM8Q58kCnsH&branch=master)](https://travis-ci.com/Engineev/ravel)
 
-dev: [![Build Status](https://travis-ci.com/Engineev/ravel.svg?token=t7LhMb4BZCM8Q58kCnsH&branch=dev)](https://travis-ci.com/Engineev/ravel)
+| master | dev|
+|---     |--- |
+|[![Build Status](https://travis-ci.com/Engineev/ravel.svg?token=t7LhMb4BZCM8Q58kCnsH&branch=master)](https://travis-ci.com/Engineev/ravel) |[![Build Status](https://travis-ci.com/Engineev/ravel.svg?token=t7LhMb4BZCM8Q58kCnsH&branch=dev)](https://travis-ci.com/Engineev/ravel)
+
 
 ## Introduction
 
@@ -40,16 +42,37 @@ to `stdout`.
 In short, if the assembly resembles the one generated with the following 
 command,
 ```shell script
-riscv32-unknown-linux-gnu-gcc -S -std=c99 -msmall-data-limit=0 -fno-section-anchors main.c
+riscv32-unknown-linux-gnu-gcc -S -std=c99 -fno-section-anchors main.c
 ```
 where the build of `gcc` is configured with
 ```shell script
 ./configure --prefix=/opt/riscv --with-arch=rv32ima --with-abi=ilp32
 ```
-then in most cases it is supported by the simulator.
+then in most cases it is supported by the simulator. For LLVM users, the 
+command should be 
+```shell script
+llc --march=riscv32 --mattr=+m main.ll
+```
 See [this](https://github.com/riscv/riscv-gnu-toolchain) for information on the
 risc-v toolchain. For detail on supported directives, instructions and libc
 functions, see [this](./doc/support.md).  
 
+## Compute the running time
+The output of **ravel** contains a `time` filed. This is computed in the 
+following way. For each type of instructions, the number of execution is 
+recorded during the interpretation, and `time` is computed by a weighted 
+summation. The default weights are listed in the following table.
+You can change the weights by passing command line options like `--wsimple=2`.
 
+| Type   | Weight |
+|---     |---     |
+|simple  | 1
+|mul     | 4
+|br      | 8
+|div     | 8
+|mem     | 64
+|libcIO  | 64
+|libcMem | 128
 
+Note: Unconditional jumps are viewed as simple instructions, and the weights 
+used in the test are still **subject to change**.

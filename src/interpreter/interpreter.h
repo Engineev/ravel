@@ -13,9 +13,6 @@ namespace ravel {
 
 struct InstWeight {
   InstWeight() = default;
-  InstWeight(std::size_t simple, std::size_t mul, std::size_t br,
-             std::size_t div, std::size_t mem)
-      : simple(simple), mul(mul), br(br), div(div), mem(mem) {}
 
   std::size_t simple = 1;
   std::size_t mul = 4;
@@ -25,6 +22,16 @@ struct InstWeight {
   // TODO: cache
   std::size_t libcIO = 64;
   std::size_t libcMem = 128;
+};
+
+struct InstCnt {
+  std::size_t simple = 0;
+  std::size_t mul = 0;
+  std::size_t br = 0;
+  std::size_t div = 0;
+  std::size_t mem = 0;
+  std::size_t libcIO = 0;
+  std::size_t libcMem = 0;
 };
 
 class Interpreter {
@@ -47,6 +54,8 @@ public:
            instCnt.libcMem * instWeight.libcMem;
   }
 
+  const InstCnt &getInstCnt() const { return instCnt; }
+
 private:
   void load();
 
@@ -66,15 +75,7 @@ private:
   FILE *in;
   FILE *out;
   InstWeight instWeight;
-  struct InstCnt {
-    std::size_t simple = 1;
-    std::size_t mul = 4;
-    std::size_t br = 8;
-    std::size_t div = 8;
-    std::size_t mem = 64;
-    std::size_t libcIO = 64;
-    std::size_t libcMem = 128;
-  } instCnt;
+  InstCnt instCnt;
 };
 
 } // namespace ravel

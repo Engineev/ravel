@@ -15,30 +15,20 @@
 #include <vector>
 
 #include "container_utils.h"
+#include "error.h"
 #include "instructions.h"
 #include "object_file.h"
 #include "parser.h"
 
 // Here, we describe the implementation of the assembler. For details about
 // the resulted [ObjectFile], see object_file.h.
-//     An [Assembler] takes a vector of string where each string represents a
-// line in the source file. We assume each line contains either a directive, a
-// label, or and instruction.
-//     In brief, the assembling process consists of two passes. In the first
-// pass, some preliminary works such as allocating spaces and recoding labels
-// are done. In the second pass, instructions are parsed.
-// The first pass: (cf. void prepare();)
-// * [storage] is resized properly and .align are handled. (Other directives
-//   are ignored.)
-// * Labels are handled. [labelName2Position] and [globalSymbols] are
-//   constructed where [labelName2Position] records the position of each label
-//   in [storage] and [globalSymbols] records the global symbols.
-// * Also, we initialize all bytes in [storage] to 0xff instead of 0, which
-//   might be helpful in recognizing accessing to uninitialized data.
-// The second pass: (cf. void parseCurrentLine(LineIter iter);)
-//
+//     We assume each line contains either a directive, a label, or and
+// instruction. See the function [preprocess] in parser.cpp for detail on
+// preprocessing.
+//     The assembling process consists of two passes. In the first pass,
+// spaces are allocated, and labels and directives are handled. In the second
+// pass, instructions are parsed.
 // TODO:
-//   * update the comments
 //   * local labels (numerical labels) are not supported yet
 
 namespace ravel {
@@ -418,7 +408,12 @@ private:
     // const std::size_t DummyOffset = 0;
     assert(!tokens.empty());
 
-    auto op = name2OpType(tokens[0]);
+    inst::Instruction::OpType op;
+    try {
+      op = name2OpType(tokens[0]);
+    } catch (std::out_of_range &e) {
+      throw NotSupportedError("Unknown op: " + tokens[0]);
+    }
 
     if (op == inst::Instruction::LUI || op == inst::Instruction::AUIPC) {
       auto dest = regName2regNumber(tokens.at(1));
