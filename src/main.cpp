@@ -19,6 +19,7 @@ public:
 
   Config parse() {
     if (std::find(args.begin(), args.end(), "--oj-mode") != args.end()) {
+      config.cacheEnabled = false;
       config.sources = {"test.s", "builtin.s"};
       config.inputFile = "test.in";
       config.outputFile = "test.out";
@@ -31,6 +32,10 @@ public:
 
       if (arg.front() != '-') { // source code
         config.sources.emplace_back(arg);
+        continue;
+      }
+      if (arg == "--enable-cache") {
+        config.cacheEnabled = true;
         continue;
       }
       if (starts_with(arg, "-w")) {

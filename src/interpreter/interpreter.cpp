@@ -126,9 +126,14 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
 
   // MemAccess
   if (Op::LB <= op && op <= Op::SW) {
-    ++instCnt.mem;
     auto &p = spc<inst::MemAccess>(inst);
-    std::byte *addr = storage.data() + regs.at(p.getBase()) + p.getOffset();
+    std::size_t vAddr = regs.at(p.getBase()) + p.getOffset();
+    bool hit = cache.get(vAddr).second;
+    if (hit && Op::LB <= op && op <= Op::LW)
+      ++instCnt.cache;
+    else
+      ++instCnt.mem;
+    std::byte *addr = storage.data() + vAddr;
     assert(storage.data() <= addr && addr < storage.data() + storage.size());
     switch (op) {
     case Op::SB:
@@ -276,6 +281,7 @@ void Interpreter::interpret() {
   load();
   while (pc != Interpretable::End) {
     assert(0 <= pc && (std::uint32_t)pc < storage.size());
+    cache.tick();
     if (Interpretable::LibcFuncStart <= (std::uint32_t)pc &&
         (std::uint32_t)pc < Interpretable::LibcFuncEnd) {
 #ifdef PRINT_INSTS
@@ -286,7 +292,12 @@ void Interpreter::interpret() {
       continue;
     }
 
-    auto instIdx = *(std::uint32_t *)(storage.data() + pc);
+    // auto instIdx = *(std::uint32_t *)(storage.data() + pc);
+    auto [instIdx, hit] = cache.get(pc);
+    if (hit)
+      instCnt.cache++;
+    else
+      instCnt.mem++;
     auto &inst = interpretable.getInsts().at(instIdx);
 #ifdef PRINT_INSTS
     std::cerr << pc << ": " << toString(inst);

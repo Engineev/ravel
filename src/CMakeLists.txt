@@ -5,6 +5,8 @@ set(SOURCE main.cpp
   assembler/parser.cpp
   assembler/parser.h
 
+  interpreter/cache.cpp
+  interpreter/cache.h
   interpreter/interpreter.cpp
   interpreter/interpreter.h
   interpreter/libc_sim.cpp

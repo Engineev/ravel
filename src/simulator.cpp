@@ -48,9 +48,10 @@ void Simulator::printResult(const Interpreter &interpreter) const {
   std::cout << "# simple  = " << iCnt.simple
             << " (including unconditional jump)\n";
   std::cout << "# mul     = " << iCnt.mul << std::endl;
+  std::cout << "# cache   = " << iCnt.cache << std::endl;
   std::cout << "# br      = " << iCnt.br << std::endl;
   std::cout << "# div     = " << iCnt.div << std::endl;
-  std::cout << "# mem     = " << iCnt.mem << std::endl;
+  std::cout << "# mem     = " << iCnt.mem << " (a.k.a cache miss)" << std::endl;
   std::cout << "# libcIO  = " << iCnt.libcIO << std::endl;
   std::cout << "# libcMem = " << iCnt.libcMem << std::endl;
 }
@@ -67,6 +68,8 @@ void Simulator::simulate() {
 
   auto starTp = std::chrono::high_resolution_clock::now();
   Interpreter interpreter{interp, in, out, config.instWeight};
+  if (!config.cacheEnabled)
+    interpreter.disableCache();
   interpreter.interpret();
   printResult(interpreter);
 
