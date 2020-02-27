@@ -95,6 +95,7 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     case Op::SLT:
     case Op::SLTI:
       dest = (std::int32_t)rs1 < (std::int32_t)rs2;
+      return;
     case Op::SLTU:
     case Op::SLTIU:
       dest = rs1 < rs2;

@@ -226,8 +226,13 @@ private:
 
     if (tokens.at(0) == ".string" || tokens.at(0) == ".asciz") {
       assert(curSection != Section::TEXT);
-      auto str = tokens.at(1).substr(1);
-      str.pop_back();
+      auto iter = line.begin();
+      iter += tokens[0].length();
+      while (std::isspace(*iter))
+        ++iter;
+      assert(*iter == '"');
+      ++iter;
+      std::string str(iter, line.end() - 1);
       str = handleEscapeCharacters(str);
       auto curPos = storage.size();
       storage.resize(storage.size() + str.size() + 1);
