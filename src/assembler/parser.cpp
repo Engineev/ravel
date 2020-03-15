@@ -1,10 +1,11 @@
 #include "parser.h"
 
 #include <algorithm>
+#include <cctype>
+#include <cstdio>
 #include <regex>
 #include <sstream>
 #include <unordered_map>
-#include <unordered_set>
 
 #include "container_utils.h"
 
@@ -404,8 +405,25 @@ std::string handleEscapeCharacters(const std::string &str) {
     }
     ++i;
     assert(i < str.length());
-    assert(str[i] == 'n');
-    res.push_back('\n');
+    if (str[i] == 'n') {
+      res.push_back('\n');
+      continue;
+    }
+    if (std::isdigit(str[i])) {
+      int n = 0;
+      for (int k = 0; k < 3 && i < str.length(); ++k, ++i) {
+        char ch = str[i];
+        if (!isdigit(ch) || ch - '0' >= 8)
+          break;
+        n *= 8;
+        n += ch - '0';
+      }
+      --i;
+      assert(0 <= n && n <= 255);
+      res.push_back((char)n);
+      continue;
+    }
+    assert(false && "Unsupported escape characters");
   }
   return res;
 }
