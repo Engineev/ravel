@@ -192,12 +192,7 @@ private:
 
     auto &storage = getCurSecStorage();
 
-    if (tokens[0] == ".align") {
-      auto alignment = std::stoi(tokens.at(1));
-      storage.resize(roundUp(storage.size(), alignment));
-      return;
-    }
-    if (tokens[0] == ".p2align") {
+    if (tokens[0] == ".align" || tokens[0] == ".p2align") {
       auto p = std::stoul(tokens.at(1));
       auto alignment = 1 << p;
       storage.resize(roundUp(storage.size(), alignment));

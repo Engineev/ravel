@@ -25,13 +25,6 @@ void scanf(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
   bool succeeded = true;
   for (auto iter = fmtStr; *iter != '\0' && succeeded; ++iter) {
     auto fmtCh = *iter;
-    if (fmtCh == '\\') {
-      ++iter;
-      fmtCh = *iter;
-      assert(fmtCh == 'n');
-      fmtCh = '\n';
-    }
-
     if (isspace(fmtCh)) {
       int ch = std::fgetc(fp);
       while (std::isspace(ch))
@@ -74,13 +67,6 @@ void sscanf(std::array<std::int32_t, 32> &regs,
   auto bufferIter = buffer;
   for (auto iter = fmtStr; *iter != '\0' && succeeded; ++iter) {
     auto fmtCh = *iter;
-    if (fmtCh == '\\') {
-      ++iter;
-      fmtCh = *iter;
-      assert(fmtCh == 'n');
-      fmtCh = '\n';
-    }
-
     if (isspace(fmtCh)) {
       int ch = *bufferIter;
       while (std::isspace(ch)) {
@@ -117,13 +103,6 @@ void printf(std::array<std::int32_t, 32> &regs,
   std::size_t nSuccess = 0;
   std::size_t curArg = 0;
   for (std::size_t i = 0; i < fmtStr.size(); ++i) {
-    if (fmtStr[i] == '\\') {
-      ++i;
-      assert(i != fmtStr.size());
-      assert(fmtStr[i] == 'n'); // TODO
-      std::putc('\n', fp);
-      continue;
-    }
     if (fmtStr[i] == '%') {
       ++i;
       assert(i != fmtStr.size());

@@ -77,6 +77,7 @@ std::vector<std::string> preprocess(const std::string &src) {
     if (pos == std::string::npos)
       continue;
     line.resize(pos);
+    line = strip(line);
   }
 
   // extract labels
@@ -84,18 +85,21 @@ std::vector<std::string> preprocess(const std::string &src) {
     auto bak = lines;
     lines.clear();
     std::regex re("[.a-zA-Z0-9_]*:", std::regex_constants::ECMAScript);
-    for (auto &line : bak) {
+    for (const auto &line : bak) {
       std::smatch matchRes;
       std::regex_search(line, matchRes, re);
       if (matchRes.empty()) {
-        lines.emplace_back(std::move(line));
+        lines.emplace_back(line);
         continue;
       }
       assert(matchRes.size() == 1); // at most one label per line
-      if (matchRes[0].first != line.begin())
+      if (matchRes[0].first != line.begin()) {
+        lines.emplace_back(line);
         continue;
-
+      }
       lines.emplace_back(matchRes[0].first, matchRes[0].second);
+      if (matchRes[0].second - matchRes[0].first == line.length())
+        continue;
       lines.emplace_back(matchRes[0].second, line.cend());
       lines.back() = strip(lines.back());
       if (lines.back().empty())
