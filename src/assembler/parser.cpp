@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cstdio>
 #include <regex>
 #include <sstream>
 #include <unordered_map>
@@ -397,6 +396,11 @@ std::optional<std::uint32_t> parseImm(const std::string &str) {
 }
 
 std::string handleEscapeCharacters(const std::string &str) {
+  static std::unordered_map<char, char> escape = {
+      {'\'', '\''}, {'\"', '\"'}, {'\\', '\\'}, {'n', '\n'}, {'r', '\r'},
+      {'t', '\t'},  {'b', '\b'},  {'f', '\f'},  {'v', '\v'},
+  };
+
   std::string res;
   for (std::size_t i = 0; i < str.length(); ++i) {
     if (str[i] != '\\') {
@@ -405,8 +409,9 @@ std::string handleEscapeCharacters(const std::string &str) {
     }
     ++i;
     assert(i < str.length());
-    if (str[i] == 'n') {
-      res.push_back('\n');
+
+    if (auto chOpt = get(escape, str[i])) {
+      res.push_back(chOpt.value());
       continue;
     }
     if (std::isdigit(str[i])) {
