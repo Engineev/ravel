@@ -45,9 +45,7 @@ public:
 
   void interpret();
 
-  void disableCache() {
-    cache.disable();
-  }
+  void disableCache() { cache.disable(); }
 
   std::uint32_t getReturnCode() const;
 
@@ -73,7 +71,7 @@ private:
 private:
   const Interpretable &interpretable;
 
-  std::array<std::int32_t, 32> regs = {0};
+  std::array<std::uint32_t, 32> regs = {0};
   std::int32_t pc = 0;
   std::vector<std::byte> storage;
   Cache cache;

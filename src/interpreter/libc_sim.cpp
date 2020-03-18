@@ -11,14 +11,14 @@
 // IO
 namespace ravel::libc {
 
-void puts(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
+void puts(std::array<std::uint32_t, 32> &regs, std::vector<std::byte> &storage,
           FILE *fp) {
   std::size_t pos = regs[10];
   regs[10] = std::fputs((const char *)(storage.data() + pos), fp);
   std::fputc('\n', fp);
 }
 
-void scanf(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
+void scanf(std::array<std::uint32_t, 32> &regs, std::vector<std::byte> &storage,
            FILE *fp) {
   auto fmtStr = (const char *)(storage.data() + regs[10]);
   std::size_t assigned = 0;
@@ -58,7 +58,7 @@ void scanf(std::array<std::int32_t, 32> &regs, std::vector<std::byte> &storage,
   regs[10] = assigned;
 }
 
-void sscanf(std::array<std::int32_t, 32> &regs,
+void sscanf(std::array<std::uint32_t, 32> &regs,
             std::vector<std::byte> &storage) {
   auto buffer = (const char *)(storage.data() + regs[10]);
   auto fmtStr = (const char *)(storage.data() + regs[11]);
@@ -97,7 +97,7 @@ void sscanf(std::array<std::int32_t, 32> &regs,
   regs[10] = assigned;
 }
 
-void printf(std::array<std::int32_t, 32> &regs,
+void printf(std::array<std::uint32_t, 32> &regs,
             const std::vector<std::byte> &storage, FILE *fp) {
   auto fmtStr = std::string((const char *)(storage.data() + regs[10]));
   std::size_t nSuccess = 0;
@@ -123,7 +123,7 @@ void printf(std::array<std::int32_t, 32> &regs,
   regs[10] = nSuccess;
 }
 
-void putchar(std::array<std::int32_t, 32> &regs, FILE *fp) {
+void putchar(std::array<std::uint32_t, 32> &regs, FILE *fp) {
   regs[10] = std::putc(regs[10], fp);
 }
 
@@ -131,7 +131,7 @@ void putchar(std::array<std::int32_t, 32> &regs, FILE *fp) {
 
 namespace ravel::libc {
 
-void malloc(std::array<std::int32_t, 32> &regs,
+void malloc(std::array<std::uint32_t, 32> &regs,
             const std::vector<std::byte> &storage, std::size_t &heapPtr,
             std::unordered_set<std::size_t> &malloced) {
   auto size = (std::size_t)regs[10];
@@ -141,14 +141,14 @@ void malloc(std::array<std::int32_t, 32> &regs,
   assert(heapPtr < storage.size());
 }
 
-void free(const std::array<std::int32_t, 32> &regs,
+void free(const std::array<std::uint32_t, 32> &regs,
           std::unordered_set<std::size_t> &malloced) {
   std::size_t addr = regs[10];
   assert(isIn(malloced, addr));
   malloced.erase(malloced.find(addr));
 }
 
-void memcpy(std::array<std::int32_t, 32> &regs,
+void memcpy(std::array<std::uint32_t, 32> &regs,
             std::vector<std::byte> &storage) {
   std::size_t dest = regs[10];
   std::size_t src = regs[11];
@@ -157,33 +157,33 @@ void memcpy(std::array<std::int32_t, 32> &regs,
   std::memcpy(storage.data() + dest, storage.data() + src, cnt);
 }
 
-void strlen(std::array<std::int32_t, 32> &regs,
+void strlen(std::array<std::uint32_t, 32> &regs,
             const std::vector<std::byte> &storage) {
   std::size_t strPos = regs[10];
   regs[10] = std::strlen((char *)storage.data() + strPos);
 }
 
-void strcpy(std::array<std::int32_t, 32> &regs,
+void strcpy(std::array<std::uint32_t, 32> &regs,
             std::vector<std::byte> &storage) {
   std::size_t dest = regs[10], src = regs[11];
   std::strcpy((char *)storage.data() + dest, (char *)storage.data() + src);
 }
 
-void strcat(std::array<std::int32_t, 32> &regs,
+void strcat(std::array<std::uint32_t, 32> &regs,
             std::vector<std::byte> &storage) {
   auto dest = (char *)(storage.data() + regs[10]);
   auto src = (const char *)(storage.data() + regs[11]);
   std::strcat(dest, src);
 }
 
-void strcmp(std::array<std::int32_t, 32> &regs,
+void strcmp(std::array<std::uint32_t, 32> &regs,
             std::vector<std::byte> &storage) {
   auto lhs = (const char *)(storage.data() + regs[10]);
   auto rhs = (const char *)(storage.data() + regs[11]);
   regs[10] = std::strcmp(lhs, rhs);
 }
 
-void memset(std::array<std::int32_t, 32> &regs,
+void memset(std::array<std::uint32_t, 32> &regs,
             std::vector<std::byte> &storage) {
   std::size_t dest = regs[10];
   int ch = regs[11];

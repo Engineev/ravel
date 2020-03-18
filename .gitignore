@@ -6,3 +6,5 @@ test.s
 builtin.s
 test.in
 test.out
+test.c
+test.ll

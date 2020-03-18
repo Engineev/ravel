@@ -2,7 +2,6 @@
 
 //#define PRINT_INSTS
 
-#include <algorithm>
 #include <cassert>
 #include <functional>
 
@@ -15,11 +14,6 @@
 
 namespace ravel {
 namespace {
-
-template <class T>
-std::shared_ptr<T> dpc(const std::shared_ptr<inst::Instruction> &inst) {
-  return std::dynamic_pointer_cast<T>(inst);
-}
 
 template <class T>
 const T &spc(const std::shared_ptr<inst::Instruction> &inst) {
@@ -47,13 +41,13 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   if (op == inst::Instruction::LUI) {
     ++instCnt.simple;
     auto &p = spc<inst::ImmConstruction>(inst);
-    regs.at(p.getDest()) = (std::uint32_t)p.getImm() << 12;
+    regs.at(p.getDest()) = p.getImm() << 12;
     return;
   }
   if (op == inst::ImmConstruction::AUIPC) {
     ++instCnt.simple;
     auto &p = spc<inst::ImmConstruction>(inst);
-    auto offset = (std::uint32_t)p.getImm() << 12;
+    std::int32_t offset = (std::uint32_t)p.getImm() << 12;
     regs.at(p.getDest()) = pc + offset;
     return;
   }
@@ -233,12 +227,19 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     case Op::MUL:
       dest = (std::int32_t)rs1 * (std::int32_t)rs2;
       return;
-    case Op::MULH:
-      dest = (std::uint32_t)(((std::int64_t)rs1 * (std::int64_t)rs2) >> 32);
+    case Op::MULH: {
+      // Note: uint32 -> int32 -> int64 != uint32 -> int64
+      std::int32_t r1 = rs1, r2 = rs2;
+      std::int64_t res = (std::int64_t)r1 * (std::int64_t)r2;
+      dest = (std::uint32_t)(res >> 32);
       return;
-    case Op::MULHSU:
-      dest = (std::uint32_t)(((std::int64_t)rs1 * (std::uint64_t)rs2) >> 32);
+    }
+    case Op::MULHSU: {
+      std::int32_t r1 = rs1;
+      std::int64_t res = (std::int64_t)r1 * (std::uint64_t)rs2;
+      dest = (std::uint32_t)(res >> 32);
       return;
+    }
     case Op::MULHU:
       dest = (std::uint32_t)(((std::uint64_t)rs1 * (std::uint64_t)rs2) >> 32);
       return;
