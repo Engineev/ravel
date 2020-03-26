@@ -72,7 +72,7 @@ You can change the weights by passing command line options like `--wsimple=2`.
 |div     | 8
 |mem     | 64
 |libcIO  | 64
-|libcMem | 128
+|libcMem | function-dependent
 
 Note: Unconditional jumps are viewed as simple instructions, and the weights 
 used in the test are still **subject to change**.

@@ -130,11 +130,18 @@ void putchar(std::array<std::uint32_t, 32> &regs, FILE *fp) {
 } // namespace ravel::libc
 
 namespace ravel::libc {
+namespace {
+// When a function manipulates a large block of memory, the instCnt should be
+// increased by more than once.
+// Hence, we use the rule: instCnt += size / MemSizeFactor
+constexpr std::size_t MemSizeFactor = 512;
+} // namespace
 
 void malloc(std::array<std::uint32_t, 32> &regs,
             const std::vector<std::byte> &storage, std::size_t &heapPtr,
-            std::unordered_set<std::size_t> &malloced) {
+            std::unordered_set<std::size_t> &malloced, std::size_t &instCnt) {
   auto size = (std::size_t)regs[10];
+  instCnt += size / MemSizeFactor;
   regs[10] = heapPtr;
   malloced.emplace(heapPtr);
   heapPtr += size;
@@ -149,10 +156,11 @@ void free(const std::array<std::uint32_t, 32> &regs,
 }
 
 void memcpy(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage) {
+            std::vector<std::byte> &storage, std::size_t &instCnt) {
   std::size_t dest = regs[10];
   std::size_t src = regs[11];
   std::size_t cnt = regs[12];
+  instCnt += cnt / MemSizeFactor;
   assert(src + cnt < storage.size() && dest + cnt < storage.size());
   std::memcpy(storage.data() + dest, storage.data() + src, cnt);
 }
@@ -164,15 +172,19 @@ void strlen(std::array<std::uint32_t, 32> &regs,
 }
 
 void strcpy(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage) {
+            std::vector<std::byte> &storage, std::size_t &instCnt) {
   std::size_t dest = regs[10], src = regs[11];
+  std::size_t size = std::strlen((char *)storage.data() + src);
+  instCnt += size / MemSizeFactor;
   std::strcpy((char *)storage.data() + dest, (char *)storage.data() + src);
 }
 
 void strcat(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage) {
+            std::vector<std::byte> &storage, std::size_t &instCnt) {
   auto dest = (char *)(storage.data() + regs[10]);
   auto src = (const char *)(storage.data() + regs[11]);
+  std::size_t size = std::strlen(src);
+  instCnt += size / MemSizeFactor;
   std::strcat(dest, src);
 }
 
@@ -184,10 +196,11 @@ void strcmp(std::array<std::uint32_t, 32> &regs,
 }
 
 void memset(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage) {
+            std::vector<std::byte> &storage, std::size_t &instCnt) {
   std::size_t dest = regs[10];
   int ch = regs[11];
   std::size_t cnt = regs[12];
+  instCnt += cnt / MemSizeFactor;
   std::memset(storage.data() + dest, ch, cnt);
 }
 

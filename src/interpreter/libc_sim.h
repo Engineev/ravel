@@ -29,27 +29,27 @@ namespace ravel::libc {
 
 void malloc(std::array<std::uint32_t, 32> &regs,
             const std::vector<std::byte> &storage, std::size_t &heapPtr,
-            std::unordered_set<std::size_t> &malloced);
+            std::unordered_set<std::size_t> &malloced, std::size_t &instCnt);
 
 void free(const std::array<std::uint32_t, 32> &regs,
           std::unordered_set<std::size_t> &malloced);
 
 void memcpy(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage);
+            std::vector<std::byte> &storage, std::size_t &instCnt);
 
 void strlen(std::array<std::uint32_t, 32> &regs,
             const std::vector<std::byte> &storage);
 
 void strcpy(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage);
+            std::vector<std::byte> &storage, std::size_t &instCnt);
 
 void strcat(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage);
+            std::vector<std::byte> &storage, std::size_t &instCnt);
 
 void strcmp(std::array<std::uint32_t, 32> &regs,
             std::vector<std::byte> &storage);
 
 void memset(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage);
+            std::vector<std::byte> &storage, std::size_t &instCnt);
 
 } // namespace ravel::libc

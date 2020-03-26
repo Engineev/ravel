@@ -291,6 +291,11 @@ void Interpreter::interpret() {
 #endif
       simulateLibCFunc(libc::Func(pc));
       pc = regs[1];
+      // force the calling convention
+      int callerSaved[] = {1,  5,  6,  7,  10, 11, 12, 13,
+                           14, 15, 16, 17, 28, 29, 30, 31};
+      for (auto reg : callerSaved)
+        regs[reg] += 0x1234;
       continue;
     }
 
@@ -316,9 +321,11 @@ void Interpreter::interpret() {
 void Interpreter::simulateLibCFunc(libc::Func funcN) {
   if (libc::PUTS <= funcN && funcN <= libc::PUTCHAR)
     ++instCnt.libcIO;
-  else if (libc::MALLOC <= funcN && funcN <= libc::MEMSET)
+  else if (libc::MALLOC <= funcN && funcN <= libc::MEMSET) {
+    // the actual update to instCnt is function-dependent. See the
+    // implementations of each function for details
     ++instCnt.libcMem;
-  else
+  } else
     assert(false);
 
   switch (funcN) {
@@ -337,28 +344,28 @@ void Interpreter::simulateLibCFunc(libc::Func funcN) {
     libc::putchar(regs, out);
     return;
   case libc::MALLOC:
-    libc::malloc(regs, storage, heapPtr, malloced);
+    libc::malloc(regs, storage, heapPtr, malloced, instCnt.libcMem);
     return;
   case libc::FREE:
     libc::free(regs, malloced);
     return;
   case libc::MEMCPY:
-    libc::memcpy(regs, storage);
+    libc::memcpy(regs, storage, instCnt.libcMem);
     return;
   case libc::STRLEN:
     libc::strlen(regs, storage);
     return;
   case libc::STRCPY:
-    libc::strcpy(regs, storage);
+    libc::strcpy(regs, storage, instCnt.libcMem);
     return;
   case libc::STRCAT:
-    libc::strcat(regs, storage);
+    libc::strcat(regs, storage, instCnt.libcMem);
     return;
   case libc::STRCMP:
     libc::strcmp(regs, storage);
     return;
   case libc::MEMSET:
-    libc::memset(regs, storage);
+    libc::memset(regs, storage, instCnt.libcMem);
     return;
   default:
     assert(false);
