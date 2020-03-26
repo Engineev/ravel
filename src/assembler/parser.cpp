@@ -73,7 +73,26 @@ std::vector<std::string> preprocess(const std::string &src) {
     line = strip(line);
 
     // remove comments
-    auto pos = line.find('#');
+    // be careful with the case: .string "#"
+    std::size_t pos = std::string::npos;
+    {
+      bool inString = false;
+      for (std::size_t i = 0; i < line.size(); ++i) {
+        auto ch = line[i];
+        if (!inString && ch == '#') {
+          pos = i;
+          break;
+        }
+        if (ch == '"') {
+          inString = !inString;
+          continue;
+        }
+        if (inString && ch == '\\') {
+          ++i;
+          continue;
+        }
+      }
+    }
     if (pos == std::string::npos)
       continue;
     line.resize(pos);
