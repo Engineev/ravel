@@ -497,7 +497,7 @@ private:
     }
 
     static std::unordered_set<std::string> mArithInsts = {
-        "mul", "mulh", "mulhsu", "mulhu", "div", "divu", "rem", "rem"};
+        "mul", "mulh", "mulhsu", "mulhu", "div", "divu", "rem", "remu"};
     if (isIn(mArithInsts, tokens[0])) {
       auto dest = regName2regNumber(tokens.at(1));
       auto src1 = regName2regNumber(tokens.at(2));
