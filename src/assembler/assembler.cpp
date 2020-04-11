@@ -1,6 +1,5 @@
 #include "assembler.h"
 
-#include <algorithm>
 #include <cassert>
 #include <cctype>
 #include <cstddef>
@@ -19,6 +18,7 @@
 #include "instructions.h"
 #include "object_file.h"
 #include "parser.h"
+#include "preprocessor.h"
 
 // Here, we describe the implementation of the assembler. For details about
 // the resulted [ObjectFile], see object_file.h.
@@ -32,19 +32,6 @@
 //   * local labels (numerical labels) are not supported yet
 
 namespace ravel {
-struct LabelName {
-  LabelName() = default;
-  LabelName(std::string global, std::string local)
-      : global(std::move(global)), local(std::move(local)) {}
-
-  std::string global, local;
-
-  bool operator==(const LabelName &rhs) const {
-    return global == rhs.global && local == rhs.local;
-  }
-
-  bool operator!=(const LabelName &rhs) const { return !(*this == rhs); }
-};
 
 enum class Section { ERROR = 0, TEXT, DATA, RODATA, BSS };
 
@@ -65,16 +52,6 @@ int roundUp(int number, int multiple) {
 
 } // namespace ravel
 
-namespace std {
-template <> struct hash<ravel::LabelName> {
-  using Key = ravel::LabelName;
-
-  std::size_t operator()(const Key &k) const {
-    return std::hash<std::string>()(k.global + "." + k.local);
-  }
-};
-} // namespace std
-
 namespace ravel {
 namespace {
 
@@ -83,7 +60,7 @@ public:
   explicit AssemblerPass1(std::vector<std::string> src) : src(std::move(src)) {}
 
   std::tuple<std::vector<std::byte> /* storage */,
-             std::unordered_map<LabelName, std::size_t> /* labelName2Pos */,
+             std::unordered_map<std::string, std::size_t> /* labelName2Pos */,
              std::unordered_set<std::string> /* globalSymbols */>
   operator()() {
     for (auto &line : src) {
@@ -96,7 +73,7 @@ public:
         continue;
       }
       assert(curSection == Section::TEXT);
-      handleInstruction(line);
+      text.resize(text.size() + 4);
     }
 
     // merge the result
@@ -111,7 +88,7 @@ public:
     storage.insert(storage.end(), rodata.begin(), rodata.end());
     storage.insert(storage.end(), bss.begin(), bss.end());
 
-    std::unordered_map<LabelName, std::size_t> labelName2Pos;
+    std::unordered_map<std::string, std::size_t> labelName2Pos;
 
     for (auto &[labelName, secPos] : labelName2SecPos) {
       std::size_t pos = 0;
@@ -194,7 +171,7 @@ private:
 
     if (tokens[0] == ".align" || tokens[0] == ".p2align") {
       auto p = std::stoul(tokens.at(1));
-      auto alignment = 1 << p;
+      auto alignment = 1u << p;
       storage.resize(roundUp(storage.size(), alignment));
       return;
     }
@@ -209,8 +186,7 @@ private:
       bss.resize(roundUp(bss.size(), alignment));
       auto pos = bss.size();
       bss.resize(bss.size() + size);
-      labelName2SecPos.emplace(LabelName(label, ""),
-                               LabelPos(Section::BSS, pos));
+      labelName2SecPos.emplace(label, LabelPos(Section::BSS, pos));
       return;
     }
     if (tokens[0] == ".zero") {
@@ -250,17 +226,8 @@ private:
   void handleLabel(std::string label) {
     assert(tokenize(label).size() == 1);
     label.pop_back(); // remove ':'
-    labelName2SecPos.emplace(LabelName(label, ""),
+    labelName2SecPos.emplace(label,
                              LabelPos(curSection, getCurSecStorage().size()));
-  }
-
-  void handleInstruction(const std::string &line) {
-    auto tokens = tokenize(line);
-    std::size_t nInsts = (tokens.at(0) == "call" || tokens.at(0) == "tail" ||
-                          tokens.at(0) == "li")
-                             ? 2
-                             : 1;
-    text.resize(text.size() + 4 * nInsts);
   }
 
 private:
@@ -269,15 +236,15 @@ private:
 
   std::vector<std::byte> text, data, rodata, bss;
   std::unordered_set<std::string> globalSymbols;
-  std::unordered_map<LabelName, LabelPos> labelName2SecPos;
+  std::unordered_map<std::string, LabelPos> labelName2SecPos;
 };
 
 class AssemblerPass2 {
 public:
   AssemblerPass2(
-      const std::vector<std::string> &src,
-      const std::unordered_map<LabelName, std::size_t> &labelName2Pos)
-      : src(src), labelName2Pos(std::move(labelName2Pos)) {}
+      const std::vector<std::string> &src, std::vector<std::byte> &storage,
+      const std::unordered_map<std::string, std::size_t> &labelName2Pos)
+      : src(src), storage(storage), labelName2Pos(labelName2Pos) {}
 
   auto operator()() {
     bool isText = false;
@@ -302,7 +269,7 @@ public:
       parseCurrentLine(line);
     }
 
-    return std::make_tuple(instsAndPos, containsExternalLabel,
+    return std::make_tuple(insts, inst2Pos, containsExternalLabel,
                            containsRelocationFunc);
   }
 
@@ -310,102 +277,51 @@ private:
   void parseCurrentLine(const std::string &line) {
     auto tokens = tokenize(line);
     if (isDirective(line)) {
-      if (tokens.at(0) != ".align")
+      if (tokens.at(0) != ".align" && tokens.at(0) != ".p2align")
         return;
       auto alignment = std::stoul(tokens.at(1));
-      curPos = roundUp(curPos, alignment);
+      curPos = roundUp(curPos, 1u << alignment);
       return;
     }
     if (isLabel(line)) {
       assert(tokens.size() == 1);
       return;
     }
-    handleInstruction(line);
-  }
-
-  void handleInstruction(const std::string &line) {
-    auto tokens = tokenize(line);
-    assert(!tokens.empty());
-
-    // handle pseudo instructions
-    if (tokens[0] == "call" || tokens[0] == "tail") {
-      handleCall(tokens);
-      return;
+    try {
+      handleInst(line);
+    } catch (NotSupportedError &e) {
+      throw NotSupportedError(std::string(e.what()) + " Line: " + line);
     }
-    if (tokens[0] == "li") {
-      handleLi(tokens);
-      return;
-    }
-
-    handleNonPseudoInst(translatePseudoInst(line));
   }
 
   // If [str] is a number, then return it.
   // If [str] is a non-external label, then compute the offset if possible
   std::optional<int> getOffset(std::string str) const {
-    if (std::isdigit(str.front())) {
+    if (std::isdigit(str.front()) && std::isdigit(str.back())) {
       return std::stoi(str, nullptr, 0);
     }
     // is a label
-    assert(!std::isdigit(str.front()) &&
-           "local label has not been supported yet");
-    auto pos = get(labelName2Pos, LabelName(str, ""));
+    if (std::isdigit(str.front())) {
+      throw NotSupportedError("local label has not been supported yet");
+    }
+    auto pos = get(labelName2Pos, str);
     if (!pos)
       return std::nullopt;
     return (std::int64_t)pos.value() - (std::int64_t)curPos;
   }
 
-  void handleLi(const std::vector<std::string> &tokens) {
-    auto dest = tokens.at(1);
-    auto imm = std::stoi(tokens.at(2), nullptr, 0);
-    auto uImm = std::uint32_t(imm) >> 12;
-    auto lImm = std::uint32_t(imm) & 0xfff;
-    auto lui = "lui " + dest + ", " + std::to_string(uImm);
-    auto ori = "ori " + dest + ", " + dest + ", " + std::to_string(lImm);
-    handleNonPseudoInst(lui);
-    handleNonPseudoInst(ori);
-  }
-
-  void handleCall(const std::vector<std::string> &tokens) {
-    using namespace std::string_literals;
-    assert(tokens.size() == 2);
-    assert(tokens[0] == "call" || tokens[0] == "tail");
-    std::string auipc, jalr;
-    auipc = "auipc x6, ";
-    jalr = "jalr "s + (tokens[0] == "call" ? "x1"s : "x0"s) + ", ";
-
-    auto funcName = tokens.at(1);
-    auto offsetOpt = getOffset(funcName);
-    if (!offsetOpt) { // an external function
-      auipc += "0";
-      jalr += "0(x6)";
-      handleNonPseudoInst(auipc);
-      containsExternalLabel.emplace(instsAndPos.back().first->getId(),
-                                    funcName);
-      handleNonPseudoInst(jalr);
-      containsExternalLabel.emplace(instsAndPos.back().first->getId(),
-                                    funcName);
-      return;
-    }
-    // an interval function
-    auto offset = offsetOpt.value();
-    auipc += std::to_string(offset >> 12);
-    jalr += std::to_string(offset & 0xfff) + "(x6)";
-    handleNonPseudoInst(auipc);
-    handleNonPseudoInst(jalr);
-    instsAndPos.back().first->setComment(funcName);
-  }
-
-  void handleNonPseudoInst(const std::string &line) {
+  void handleInst(const std::string &line) {
     auto tokens = tokenize(line);
     auto inst = parseInst(tokens);
-    instsAndPos.emplace_back(inst, curPos);
+    assert(curPos + 3 < storage.size());
+    *(std::uint32_t *)(storage.data() + curPos) = insts.size();
+    insts.emplace_back(inst);
+    inst2Pos.emplace(inst->getId(), curPos);
     curPos += 4;
   }
 
   std::shared_ptr<inst::Instruction>
   parseInst(const std::vector<std::string> &tokens) {
-    // const std::size_t DummyOffset = 0;
     assert(!tokens.empty());
 
     inst::Instruction::OpType op;
@@ -417,12 +333,15 @@ private:
 
     if (op == inst::Instruction::LUI || op == inst::Instruction::AUIPC) {
       auto dest = regName2regNumber(tokens.at(1));
-      auto imm = parseImm(tokens.at(2));
-      auto inst =
-          std::make_shared<inst::ImmConstruction>(op, dest, imm.value_or(0));
-      if (!imm)
-        containsRelocationFunc.emplace(inst->getId(), tokens.at(2));
-      return inst;
+      auto immStr = tokens.at(2);
+      if (immStr.front() == '%') {
+        auto inst = std::make_shared<inst::ImmConstruction>(op, dest, 0);
+        containsRelocationFunc.emplace(inst->getId(),
+                                       parseRelocationFunction(immStr));
+        return inst;
+      }
+      return std::make_shared<inst::ImmConstruction>(op, dest,
+                                                     parseImm(immStr));
     }
 
     static std::unordered_set<std::string> arithRegReg = {
@@ -439,25 +358,31 @@ private:
     if (isIn(arithRegImmInsts, tokens.at(0))) {
       auto dest = regName2regNumber(tokens.at(1));
       auto rc = regName2regNumber(tokens.at(2));
-      auto imm = parseImm(tokens.at(3));
-      auto inst =
-          std::make_shared<inst::ArithRegImm>(op, dest, rc, imm.value_or(0));
-      if (!imm)
-        containsRelocationFunc.emplace(inst->getId(), tokens.at(3));
-      return inst;
+      auto immStr = tokens.at(3);
+      if (immStr.front() == '%') {
+        auto inst = std::make_shared<inst::ArithRegImm>(op, dest, rc, 0);
+        containsRelocationFunc.emplace(inst->getId(),
+                                       parseRelocationFunction(immStr));
+        return inst;
+      }
+      return std::make_shared<inst::ArithRegImm>(op, dest, rc,
+                                                 parseImm(immStr));
     }
 
     static std::unordered_set<std::string> memAccessInsts = {
         "lb", "lh", "lw", "lbu", "lhu", "sb", "sh", "sw"};
     if (isIn(memAccessInsts, tokens[0])) {
       auto reg = regName2regNumber(tokens.at(1));
-      if (tokens.at(2).front() == '%') { // e.g. %lo(l)(a5)
-        auto addrTokens = split(tokens[2], "()");
-        assert(addrTokens.at(0) == "%lo");
-        auto relocation = "%lo(" + addrTokens.at(1) + ")";
+      auto baseOffsetStr = tokens.at(2);
+      if (baseOffsetStr.front() == '%') { // e.g. %lo(l)(a5)
+        auto addrTokens = split(baseOffsetStr, "()");
+        assert(addrTokens.front() == "%lo" ||
+               addrTokens.front() == "%pcrel_lo");
+        auto relocation = addrTokens.at(0) + "(" + addrTokens.at(1) + ")";
         auto base = regName2regNumber(addrTokens.back());
         auto inst = std::make_shared<inst::MemAccess>(op, reg, base, 0);
-        containsRelocationFunc.emplace(inst->getId(), relocation);
+        containsRelocationFunc.emplace(inst->getId(),
+                                       parseRelocationFunction(relocation));
         return inst;
       }
 
@@ -478,6 +403,18 @@ private:
 
     if (op == inst::Instruction::JALR) {
       auto dest = regName2regNumber(tokens.at(1));
+      auto baseOffsetStr = tokens.at(2);
+      if (baseOffsetStr.front() == '%') { // e.g. %lo(l)(a5)
+        auto addrTokens = split(baseOffsetStr, "()");
+        assert(addrTokens.front() == "%lo" ||
+               addrTokens.front() == "%pcrel_lo");
+        auto relocation = addrTokens.at(0) + "(" + addrTokens.at(1) + ")";
+        auto base = regName2regNumber(addrTokens.back());
+        auto inst = std::make_shared<inst::JumpLinkReg>(dest, base, 0);
+        containsRelocationFunc.emplace(inst->getId(),
+                                       parseRelocationFunction(relocation));
+        return inst;
+      }
       auto [base, offset] = parseBaseOffset(tokens.at(2));
       return std::make_shared<inst::JumpLinkReg>(dest, base, offset);
     }
@@ -491,6 +428,7 @@ private:
       if (offsetOpt)
         return std::make_shared<inst::Branch>(op, src1, src2, offsetOpt.value(),
                                               tokens[3]);
+      // external
       auto inst = std::make_shared<inst::Branch>(op, src1, src2, 0, tokens[3]);
       containsExternalLabel.emplace(inst->getId(), tokens.at(3));
       return inst;
@@ -505,20 +443,46 @@ private:
       return std::make_shared<inst::MArith>(op, dest, src1, src2);
     }
 
-    assert(false);
+    throw NotSupportedError("Unknown instruction");
+  }
+
+  static RelocationFunction parseRelocationFunction(const std::string &str) {
+    assert(str.front() == '%');
+    auto tokens = split(str, "()+");
+    assert(tokens.size() == 2 || tokens.size() == 3);
+    auto func = tokens.front();
+    auto symbol = tokens[1];
+    if (func == "%hi" || func == "%lo") {
+      int offset = 0;
+      if (tokens.size() == 3)
+        offset = parseImm(tokens.back());
+      return RelocationFunction(func == "%hi" ? RelocationFunction::HI
+                                              : RelocationFunction::LO,
+                                symbol, offset);
+    }
+    if (func != "%pcrel_hi" && func != "%pcrel_lo") {
+      throw NotSupportedError("Unsupported relocation function: " + func);
+    }
+    return RelocationFunction(func == "%pcrel_hi"
+                                  ? RelocationFunction::PCREL_HI
+                                  : RelocationFunction::PCREL_LO,
+                              symbol);
   }
 
 private:
   const std::vector<std::string> &src;
   std::size_t curPos = 0;
 
-  std::vector<std::pair<std::shared_ptr<inst::Instruction>, std::size_t>>
-      instsAndPos;
-  const std::unordered_map<LabelName, std::size_t> &labelName2Pos;
+  std::vector<std::byte> &storage;
+  std::vector<std::shared_ptr<inst::Instruction>> insts;
+  std::unordered_map<inst::Instruction::Id, std::size_t> inst2Pos;
+
+  const std::unordered_map<std::string, std::size_t> &labelName2Pos;
   // When we encounter an instruction which contains an external label, then
-  // we add the instruction ID and the label name into this.
+  // we add the instruction ID and the label name into `containsExternalLabel`.
   std::unordered_map<inst::Instruction::Id, std::string> containsExternalLabel;
-  std::unordered_map<inst::Instruction::Id, std::string> containsRelocationFunc;
+  std::unordered_map<inst::Instruction::Id, RelocationFunction>
+      containsRelocationFunc;
 };
 
 } // namespace
@@ -529,14 +493,19 @@ namespace ravel {
 ObjectFile assemble(const std::string &src) {
   auto lines = preprocess(src);
   auto [storage, labelName2Pos, globalSymbols] = AssemblerPass1(lines)();
-  auto [instsAndPos, containsExternalLabel, containsRelocationFunc] =
-      AssemblerPass2(lines, labelName2Pos)();
+  auto [insts, inst2Pos, containsExternalLabel, containsRelocationFunc] =
+      AssemblerPass2(lines, storage, labelName2Pos)();
 
   std::unordered_map<std::string, std::size_t> symTable;
   for (auto &[label, pos] : labelName2Pos)
-    symTable.emplace(label.global, pos);
-  return {std::move(storage), std::move(instsAndPos), std::move(symTable),
-          globalSymbols,      containsExternalLabel,  containsRelocationFunc};
+    symTable.emplace(label, pos);
+  return {std::move(storage),
+          std::move(insts),
+          std::move(inst2Pos),
+          std::move(symTable),
+          std::move(globalSymbols),
+          std::move(containsExternalLabel),
+          std::move(containsRelocationFunc)};
 }
 
 } // namespace ravel

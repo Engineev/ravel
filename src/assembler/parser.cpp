@@ -61,79 +61,6 @@ std::optional<std::string> getSectionName(const std::string &line) {
   return words.at(1);
 }
 
-std::vector<std::string> preprocess(const std::string &src) {
-  std::vector<std::string> lines;
-
-  std::stringstream ss(src);
-  for (std::string line; std::getline(ss, line, '\n');)
-    lines.push_back(line);
-
-  for (auto &line : lines) {
-    // trimming
-    line = strip(line);
-
-    // remove comments
-    // be careful with the case: .string "#"
-    std::size_t pos = std::string::npos;
-    {
-      bool inString = false;
-      for (std::size_t i = 0; i < line.size(); ++i) {
-        auto ch = line[i];
-        if (!inString && ch == '#') {
-          pos = i;
-          break;
-        }
-        if (ch == '"') {
-          inString = !inString;
-          continue;
-        }
-        if (inString && ch == '\\') {
-          ++i;
-          continue;
-        }
-      }
-    }
-    if (pos == std::string::npos)
-      continue;
-    line.resize(pos);
-    line = strip(line);
-  }
-
-  // extract labels
-  {
-    auto bak = lines;
-    lines.clear();
-    std::regex re("[.a-zA-Z0-9_]*:", std::regex_constants::ECMAScript);
-    for (const auto &line : bak) {
-      std::smatch matchRes;
-      std::regex_search(line, matchRes, re);
-      if (matchRes.empty()) {
-        lines.emplace_back(line);
-        continue;
-      }
-      assert(matchRes.size() == 1); // at most one label per line
-      if (matchRes[0].first != line.begin()) {
-        lines.emplace_back(line);
-        continue;
-      }
-      lines.emplace_back(matchRes[0].first, matchRes[0].second);
-      if (matchRes[0].second - matchRes[0].first == line.length())
-        continue;
-      lines.emplace_back(matchRes[0].second, line.cend());
-      lines.back() = strip(lines.back());
-      if (lines.back().empty())
-        lines.pop_back();
-    }
-  }
-
-  // remove empty lines
-  lines.erase(std::remove_if(lines.begin(), lines.end(),
-                             [](auto &l) { return l.empty(); }),
-              lines.end());
-
-  return lines;
-}
-
 std::string opType2Name(inst::Instruction::OpType op) {
   using namespace std::string_literals;
   static std::unordered_map<inst::Instruction::OpType, std::string> mp{
@@ -326,81 +253,6 @@ std::string regNumber2regName(const std::size_t &num) {
   return names.at(num);
 }
 
-std::string translatePseudoInst(const std::string &line) {
-  using namespace std::string_literals;
-  auto tokens = tokenize(line);
-  auto opname = tokens.at(0);
-  if (opname == "nop") {
-    return "addi x0, x0, 0"s;
-  }
-  if (opname == "li") {
-    assert(false);
-  }
-  if (opname == "mv") {
-    return "addi "s + tokens.at(1) + "," + tokens.at(2) + ",0";
-  }
-  if (opname == "not") {
-    return "xori "s + tokens.at(1) + ", " + tokens.at(2) + ", -1";
-  }
-  if (opname == "neg") {
-    return "sub "s + tokens.at(1) + ", x0, " + tokens.at(2);
-  }
-  if (opname == "seqz") {
-    return "sltiu " + tokens.at(1) + ", " + tokens.at(2) + ", 1";
-  }
-  if (opname == "snez") {
-    return "sltu " + tokens.at(1) + ", x0, " + tokens.at(2);
-  }
-  if (opname == "sltz") {
-    return "slt " + tokens.at(1) + ", " + tokens.at(2) + ", x0";
-  }
-  if (opname == "sgtz") {
-    return "slt " + tokens.at(1) + ", x0, " + tokens.at(2);
-  }
-
-  if (opname == "sgt") {
-    return "slt " + tokens.at(1) + ", " + tokens.at(3) + ", " + tokens.at(2);
-  }
-
-  static const std::unordered_map<std::string, std::string> branchPair = {
-      {"bgt", "blt"}, {"ble", "bge"}, {"bgtu", "bltu"}, {"bleu", "bgeu"}};
-  if (auto op = get(branchPair, opname)) {
-    return op.value() + " " + tokens.at(2) + "," + tokens.at(1) + "," +
-           tokens.at(3);
-  }
-  if (opname.front() == 'b' && opname.back() == 'z') {
-    opname.pop_back();
-    bool reverse = isIn(branchPair, opname);
-    if (reverse)
-      opname = branchPair.at(opname);
-    auto rs1 = tokens.at(1);
-    auto rs2 = "x0"s;
-    if (reverse)
-      std::swap(rs1, rs2);
-    return opname + " " + rs1 + ", " + rs2 + ", " + tokens.at(2);
-  }
-
-  if (opname == "j") {
-    return "jal x0, "s + tokens.at(1);
-  }
-  if (opname == "jal" && tokens.size() == 2) {
-    return "jal x1, "s + tokens[1];
-  }
-  if (opname == "jr") {
-    return "jalr x0, 0(" + tokens.at(1) + ")";
-  }
-  if (opname == "jalr" && tokens.size() == 2) {
-    return "jalr x1, 0(" + tokens.at(1) + ")";
-  }
-  if (opname == "ret") {
-    return "jalr x0, 0(x1)"s;
-  }
-  if (opname == "call" || opname == "tail") {
-    assert(false && "use handleCall to handle call/tail ");
-  }
-  return line;
-}
-
 std::string parseSectionDerivative(const std::string &line) {
   auto tokens = split(line, " \t,.");
   assert(tokens.at(0) == "section");
@@ -412,9 +264,7 @@ std::string parseSectionDerivative(const std::string &line) {
   return "." + name;
 }
 
-std::optional<std::uint32_t> parseImm(const std::string &str) {
-  if (str.front() == '%')
-    return std::nullopt;
+std::uint32_t parseImm(const std::string &str) {
   return std::stoul(str, nullptr, 0);
 }
 

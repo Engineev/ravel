@@ -4,6 +4,8 @@ set(SOURCE main.cpp
   assembler/object_file.h
   assembler/parser.cpp
   assembler/parser.h
+  assembler/preprocessor.cpp
+  assembler/preprocessor.h
 
   interpreter/cache.cpp
   interpreter/cache.h

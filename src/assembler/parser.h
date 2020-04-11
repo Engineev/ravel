@@ -26,12 +26,6 @@ bool isLabel(const std::string &str);
 // the name of the section
 std::optional<std::string> getSectionName(const std::string &line);
 
-// Remove comments
-// Split source code into lines
-// Move labels into a separate line
-// Remove empty lines
-std::vector<std::string> preprocess(const std::string &src);
-
 std::string opType2Name(inst::Instruction::OpType op);
 
 inst::Instruction::OpType name2OpType(std::string name);
@@ -44,14 +38,10 @@ std::pair<std::size_t, int> parseBaseOffset(const std::string &str);
 
 std::string toString(const std::shared_ptr<inst::Instruction> &inst);
 
-std::string translatePseudoInst(const std::string &line);
-
 // return the section name (e.g. .text)
 std::string parseSectionDerivative(const std::string &line);
 
-// e.g. 0x123, 123
-// return nullopt if str is a relocation function
-std::optional<std::uint32_t> parseImm(const std::string &str);
+std::uint32_t parseImm(const std::string &str);
 
 std::string handleEscapeCharacters(const std::string &str);
 

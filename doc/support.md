@@ -31,7 +31,8 @@ Local labels are not supported.
 
 ## Relocation Functions
 
-`%hi(symbol)` and `%lo(symbol)` are supported. 
+`%hi(symbol)`, `%lo(symbol)`, `%pcrel_hi(symbol)` and `%pcrel_lo(symbol)`
+are supported. 
 
 ## Pseudo-instructions
 
@@ -39,6 +40,9 @@ Local labels are not supported.
 
 | Pseudo-instruction |
 |:---|
+| `la rd, symbol`
+| `l{b, h, w} rd, symbol`
+| `s{b, h, w} rd, symbol, rt`
 | `nop`
 | `li  rd, imm`
 | `mv  rd, rs`

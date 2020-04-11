@@ -6,6 +6,8 @@
 #include <memory>
 #include <string>
 
+#include "container_utils.h"
+
 namespace ravel::inst {
 
 class Instruction {
@@ -24,22 +26,7 @@ public:
   };
   // clang-format on
 
-  class Id {
-    template <class K> friend struct std::hash;
-
-  public:
-    Id() {
-      static int currentId = 1;
-      val = currentId++;
-    }
-
-    bool operator==(const Id &rhs) const { return val == rhs.val; }
-
-    bool operator!=(const Id &rhs) const { return !(*this == rhs); }
-
-  private:
-    int val;
-  };
+  using Id = ravel::Id<Instruction>;
 
 public:
   explicit Instruction(OpType type) : op(type) {}
@@ -184,11 +171,3 @@ private:
 };
 
 } // namespace ravel::inst
-
-namespace std {
-template <> struct hash<ravel::inst::Instruction::Id> {
-  using Key = ravel::inst::Instruction::Id;
-
-  std::size_t operator()(const Key &k) const { return std::hash<int>()(k.val); }
-};
-} // namespace std
