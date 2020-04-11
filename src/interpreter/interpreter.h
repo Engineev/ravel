@@ -61,6 +61,8 @@ public:
 
   const InstCnt &getInstCnt() const { return instCnt; }
 
+  void enablePrintInstructions() { printInstructions = true; }
+
 private:
   void load();
 
@@ -82,6 +84,7 @@ private:
   FILE *out;
   InstWeight instWeight;
   InstCnt instCnt;
+  bool printInstructions = false;
 };
 
 } // namespace ravel

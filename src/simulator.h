@@ -14,6 +14,7 @@ namespace ravel {
 struct Config {
   Config() = default;
 
+  bool printInsts = false;
   bool cacheEnabled = false;
   std::string inputFile;
   std::string outputFile;

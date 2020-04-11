@@ -1,4 +1,5 @@
 #include <cassert>
+#include <iostream>
 #include <unordered_map>
 
 #include "assembler/parser.h"
@@ -56,7 +57,12 @@ public:
         config.outputFile = tokens.at(1);
         continue;
       }
-      assert(false);
+      if (starts_with(arg, "--print-instructions")) {
+        config.printInsts = true;
+        continue;
+      }
+      std::cerr << "Unknown command line argument: " << arg << std::endl;
+      exit(1);
     }
     return config;
   }

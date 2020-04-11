@@ -35,7 +35,11 @@ ravel --oj-mode
 Under this mode, the simulator takes `test.s` and `builtin.s` as the source
 code, `test.in` as the input and redirect the program output into `test.out`.
 The results (e.g. exit code) of the simulation will still be outputted directly
-to `stdout`.
+to `stdout`. 
+
+If you'd like to see the instructions being executed, you may pass in command
+line option `--print-instructions`, but note that this will slow down the 
+simulation significantly.
 
 ## Support
 
@@ -57,7 +61,7 @@ See [this](https://github.com/riscv/riscv-gnu-toolchain) for information on the
 risc-v toolchain. For detail on supported directives, instructions and libc
 functions, see [this](./doc/support.md).  
 
-## Compute the running time
+## Computing the running time
 The output of **ravel** contains a `time` filed. This is computed in the 
 following way. For each type of instructions, the number of execution is 
 recorded during the interpretation, and `time` is computed by a weighted 

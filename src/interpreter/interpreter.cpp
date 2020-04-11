@@ -1,13 +1,8 @@
 #include "interpreter.h"
 
-//#define PRINT_INSTS
-
 #include <cassert>
 #include <functional>
-
-#ifdef PRINT_INSTS
 #include <iostream>
-#endif
 
 #include "assembler/parser.h"
 #include "interpreter/libc_sim.h"
@@ -286,9 +281,8 @@ void Interpreter::interpret() {
     cache.tick();
     if (Interpretable::LibcFuncStart <= (std::uint32_t)pc &&
         (std::uint32_t)pc < Interpretable::LibcFuncEnd) {
-#ifdef PRINT_INSTS
-      std::cerr << pc << ": call libc-" << pc << std::endl;
-#endif
+      if (printInstructions)
+        std::cerr << pc << ": call libc-" << pc << std::endl;
       simulateLibCFunc(libc::Func(pc));
       pc = regs[1];
       // force the calling convention
@@ -306,12 +300,12 @@ void Interpreter::interpret() {
     else
       instCnt.mem++;
     auto &inst = interpretable.getInsts().at(instIdx);
-#ifdef PRINT_INSTS
-    std::cerr << pc << ": " << toString(inst);
-    if (!inst->getComment().empty())
-      std::cerr << "  # " << inst->getComment();
-    std::cerr << std::endl;
-#endif
+    if (printInstructions) {
+      std::cerr << pc << ": " << toString(inst);
+      if (!inst->getComment().empty())
+        std::cerr << "  # " << inst->getComment();
+      std::cerr << std::endl;
+    }
     simulate(inst);
     regs[0] = 0;
     pc += 4;

@@ -70,6 +70,8 @@ void Simulator::simulate() {
   Interpreter interpreter{interp, in, out, config.instWeight};
   if (!config.cacheEnabled)
     interpreter.disableCache();
+  if (config.printInsts)
+    interpreter.enablePrintInstructions();
   interpreter.interpret();
   printResult(interpreter);
 
