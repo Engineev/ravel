@@ -175,7 +175,7 @@ translatePseudoInstructions(std::vector<std::string> lines) {
 
     // la, l{b|h|w}, s{b|h|w|d}
     static const std::unordered_set<std::string> Mem = {"lb", "lh", "lw",
-                                                        "sb, sh, sw"};
+                                                        "sb", "sh", "sw"};
     // Note: Non-pseudo loads are for the form: lw rd, offset(reg)
     if (op == "la" || (isIn(Mem, op) && tokens.at(2).back() != ')')) {
       auto label = newLabel();
