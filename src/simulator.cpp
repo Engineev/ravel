@@ -68,6 +68,7 @@ void Simulator::simulate() {
 
   auto starTp = std::chrono::high_resolution_clock::now();
   Interpreter interpreter{interp, in, out, config.instWeight};
+  interpreter.setTimeout(config.timeout);
   if (!config.cacheEnabled)
     interpreter.disableCache();
   if (config.printInsts)

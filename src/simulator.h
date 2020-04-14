@@ -20,6 +20,8 @@ struct Config {
   std::string outputFile;
   std::vector<std::string> sources;
   InstWeight instWeight = InstWeight();
+  // exits when # of instructions executed exceeds `timeout`
+  std::size_t timeout = (std::size_t)-1;
 };
 
 class Simulator {

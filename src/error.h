@@ -1,6 +1,7 @@
 #pragma once
 
 #include <exception>
+#include <sstream>
 #include <string>
 
 namespace ravel {
@@ -36,6 +37,24 @@ public:
 
 class NotSupportedError : public Exception {
 public:
+  using Exception::Exception;
+};
+
+class InvalidAddress : Exception {
+public:
+  explicit InvalidAddress(std::size_t address) : Exception("") {
+    std::stringstream ss;
+    ss << std::hex << address;
+    msg = ss.str();
+  }
+
+  const char *what() const noexcept override { return msg.c_str(); }
+
+private:
+  std::string msg;
+};
+
+class Timeout : Exception {
   using Exception::Exception;
 };
 

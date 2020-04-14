@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstddef>
 #include <iostream>
 #include <unordered_map>
 
@@ -37,6 +38,11 @@ public:
       }
       if (arg == "--enable-cache") {
         config.cacheEnabled = true;
+        continue;
+      }
+      if (arg == "--timeout") {
+        auto tokens = split(arg, "=");
+        config.timeout = std::stoul(tokens.at(1));
         continue;
       }
       if (starts_with(arg, "-w")) {

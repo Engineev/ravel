@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "assembler/parser.h"
+#include "error.h"
 #include "interpreter/libc_sim.h"
 
 namespace ravel {
@@ -276,8 +277,15 @@ void Interpreter::load() {
 
 void Interpreter::interpret() {
   load();
+  std::size_t numInsts = 0;
   while (pc != Interpretable::End) {
-    assert(0 <= pc && (std::uint32_t)pc < storage.size());
+    if (!(0 <= pc && (std::uint32_t)pc < storage.size())) {
+      throw InvalidAddress(pc);
+    }
+    ++numInsts;
+    if (numInsts > timeout) {
+      throw Timeout("");
+    }
     cache.tick();
     if (Interpretable::LibcFuncStart <= (std::uint32_t)pc &&
         (std::uint32_t)pc < Interpretable::LibcFuncEnd) {

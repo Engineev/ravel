@@ -1,9 +1,14 @@
 #include "cache.h"
 
+#include "error.h"
+
 namespace ravel {
 
 std::pair<std::uint32_t /* val */, bool /* hit */>
 Cache::get(std::size_t addr) {
+  if (!(0 <= addr && addr + 3 < memory.size())) {
+    throw InvalidAddress(addr);
+  }
   if (disabled)
     return {*(std::uint32_t *)(memory.data() + addr), false};
   for (auto &line : lines) {
