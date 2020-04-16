@@ -226,6 +226,9 @@ private:
   void handleLabel(std::string label) {
     assert(tokenize(label).size() == 1);
     label.pop_back(); // remove ':'
+    if (isIn(labelName2SecPos, label)) {
+      throw DuplicatedSymbols(label);
+    }
     labelName2SecPos.emplace(label,
                              LabelPos(curSection, getCurSecStorage().size()));
   }
