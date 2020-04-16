@@ -71,6 +71,7 @@ You can change the weights by passing command line options like `--wsimple=2`.
 | Type   | Weight |
 |---     |---     |
 |simple  | 1
+|cache   | 4
 |mul     | 4
 |br      | 8
 |div     | 8
