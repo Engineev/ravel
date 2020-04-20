@@ -182,19 +182,21 @@ translatePseudoInstructions(std::vector<std::string> lines) {
       auto rd = tokens.at(1);
       auto symbol = tokens.at(2);
       lines.emplace_back(label + ":");
-      lines.emplace_back("auipc " + rd + ", %pcrel_hi(" + symbol + ")");
       if (op == "la") {
+        lines.emplace_back("auipc " + rd + ", %pcrel_hi(" + symbol + ")");
         lines.emplace_back("addi " + rd + ", " + rd + ", %pcrel_lo(" + label +
                            ")");
         continue;
       }
       if (op.front() == 'l') {
+        lines.emplace_back("auipc " + rd + ", %pcrel_hi(" + symbol + ")");
         lines.emplace_back(op + " " + rd + ", %pcrel_lo(" + label + ")(" + rd +
                            ")");
         continue;
       }
       if (op.front() == 's') {
         auto rt = tokens.at(3);
+        lines.emplace_back("auipc " + rt + ", %pcrel_hi(" + symbol + ")");
         lines.emplace_back(op + " " + rd + ", %pcrel_lo(" + label + ")(" + rt +
                            ")");
         continue;
