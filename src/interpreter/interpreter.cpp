@@ -37,13 +37,13 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   if (op == inst::Instruction::LUI) {
     ++instCnt.simple;
     auto &p = spc<inst::ImmConstruction>(inst);
-    regs.at(p.getDest()) = p.getImm() << 12;
+    regs.at(p.getDest()) = p.getImm() << 12u;
     return;
   }
   if (op == inst::ImmConstruction::AUIPC) {
     ++instCnt.simple;
     auto &p = spc<inst::ImmConstruction>(inst);
-    std::int32_t offset = (std::uint32_t)p.getImm() << 12;
+    std::int32_t offset = (std::uint32_t)p.getImm() << 12u;
     regs.at(p.getDest()) = pc + offset;
     return;
   }
@@ -170,7 +170,7 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     auto &p = spc<inst::JumpLinkReg>(inst);
     regs.at(p.getDest()) = pc + 4;
     auto addr = regs.at(p.getBase()) + p.getOffset();
-    addr &= ~1;
+    addr &= ~1u;
     pc = addr - 4;
     return;
   }
@@ -198,7 +198,7 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
       shouldJump = (std::uint32_t)rs1 < (std::uint32_t)rs2;
       break;
     case Op::BGEU:
-      shouldJump = (std::uint32_t)rs1 == (std::uint32_t)rs2;
+      shouldJump = (std::uint32_t)rs1 >= (std::uint32_t)rs2;
       break;
     default:
       assert(false);
@@ -227,17 +227,17 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
       // Note: uint32 -> int32 -> int64 != uint32 -> int64
       std::int32_t r1 = rs1, r2 = rs2;
       std::int64_t res = (std::int64_t)r1 * (std::int64_t)r2;
-      dest = (std::uint32_t)(res >> 32);
+      dest = (std::uint32_t)(res >> 32u);
       return;
     }
     case Op::MULHSU: {
       std::int32_t r1 = rs1;
       std::int64_t res = (std::int64_t)r1 * (std::uint64_t)rs2;
-      dest = (std::uint32_t)(res >> 32);
+      dest = (std::uint32_t)(res >> 32u);
       return;
     }
     case Op::MULHU:
-      dest = (std::uint32_t)(((std::uint64_t)rs1 * (std::uint64_t)rs2) >> 32);
+      dest = (std::uint32_t)(((std::uint64_t)rs1 * (std::uint64_t)rs2) >> 32u);
       return;
     case Op::DIV:
       dest = (std::int32_t)rs1 / (std::int32_t)rs2;
@@ -261,7 +261,7 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
 }
 
 std::uint32_t Interpreter::getReturnCode() const {
-  return 0xffff & regs.at(regName2regNumber("a0"));
+  return 0xffffu & regs.at(regName2regNumber("a0"));
 }
 
 void Interpreter::load() {
