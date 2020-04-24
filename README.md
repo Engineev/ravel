@@ -35,7 +35,10 @@ ravel --oj-mode
 Under this mode, the simulator takes `test.s` and `builtin.s` as the source
 code, `test.in` as the input and redirect the program output into `test.out`.
 The results (e.g. exit code) of the simulation will still be outputted directly
-to `stdout`. 
+to `stdout`. This is equivalent to
+```shell script
+ravel --input-file=test.in --output-file=test.out test.s builtin.s 
+```
 
 If you'd like to see the instructions being executed, you may pass in command
 line option `--print-instructions`, but note that this will slow down the 
@@ -66,7 +69,9 @@ The output of **ravel** contains a `time` filed. This is computed in the
 following way. For each type of instructions, the number of execution is 
 recorded during the interpretation, and `time` is computed by a weighted 
 summation. The default weights are listed in the following table.
-You can change the weights by passing command line options like `--wsimple=2`.
+You can change the weights by passing in command line options like 
+`--wsimple=2`. By default, cache is disabled. You may enable it by passing in
+`--enable-cache`. 
 
 | Type   | Weight |
 |---     |---     |
