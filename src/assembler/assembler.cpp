@@ -61,7 +61,8 @@ public:
 
   std::tuple<std::vector<std::byte> /* storage */,
              std::unordered_map<std::string, std::size_t> /* labelName2Pos */,
-             std::unordered_set<std::string> /* globalSymbols */>
+             std::unordered_set<std::string> /* globalSymbols */,
+             std::vector<std::pair<std::string, std::size_t>> /* toBeStored */>
   operator()() {
     for (auto &line : src) {
       if (isDirective(line)) {
@@ -84,6 +85,8 @@ public:
 
     std::vector<std::byte> storage;
     storage.insert(storage.end(), text.begin(), text.end());
+    for (auto &[label, position] : toBeStored)
+      position += storage.size();
     storage.insert(storage.end(), data.begin(), data.end());
     storage.insert(storage.end(), rodata.begin(), rodata.end());
     storage.insert(storage.end(), bss.begin(), bss.end());
@@ -108,7 +111,7 @@ public:
       labelName2Pos.emplace(labelName, pos);
     }
 
-    return {storage, labelName2Pos, globalSymbols};
+    return {storage, labelName2Pos, globalSymbols, toBeStored};
   }
 
 private:
@@ -213,9 +216,15 @@ private:
     }
     if (tokens.at(0) == ".word") {
       assert(curSection != Section::TEXT);
-      std::int32_t val = std::stoi(tokens.at(1), nullptr, 0);
+      assert(tokens.size() == 2);
       auto curPos = storage.size();
       storage.resize(storage.size() + 4);
+      if (!std::isdigit(tokens.at(1).front())) { // .word label
+        assert(curSection == Section::DATA);
+        toBeStored.emplace_back(tokens.at(1), curPos);
+        return;
+      }
+      std::int32_t val = std::stoi(tokens.at(1), nullptr, 0);
       *(std::int32_t *)(storage.data() + curPos) = val;
       return;
     }
@@ -238,8 +247,10 @@ private:
   Section curSection = Section::ERROR;
 
   std::vector<std::byte> text, data, rodata, bss;
+  // cf. ObjectFile
   std::unordered_set<std::string> globalSymbols;
   std::unordered_map<std::string, LabelPos> labelName2SecPos;
+  std::vector<std::pair<std::string, std::size_t>> toBeStored;
 };
 
 class AssemblerPass2 {
@@ -495,7 +506,8 @@ namespace ravel {
 
 ObjectFile assemble(const std::string &src) {
   auto lines = preprocess(src);
-  auto [storage, labelName2Pos, globalSymbols] = AssemblerPass1(lines)();
+  auto [storage, labelName2Pos, globalSymbols, toBeStored] =
+      AssemblerPass1(lines)();
   auto [insts, inst2Pos, containsExternalLabel, containsRelocationFunc] =
       AssemblerPass2(lines, storage, labelName2Pos)();
 
@@ -508,7 +520,8 @@ ObjectFile assemble(const std::string &src) {
           std::move(symTable),
           std::move(globalSymbols),
           std::move(containsExternalLabel),
-          std::move(containsRelocationFunc)};
+          std::move(containsRelocationFunc),
+          std::move(toBeStored)};
 }
 
 } // namespace ravel

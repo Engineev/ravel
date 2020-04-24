@@ -60,35 +60,49 @@ public:
              std::unordered_map<inst::Instruction::Id, std::string>
                  containsExternalLabel,
              std::unordered_map<inst::Instruction::Id, RelocationFunction>
-                 containsRelocationFunc)
+                 containsRelocationFunc,
+             std::vector<std::pair<std::string, std::size_t>> toBeStored)
       : storage(std::move(storage)), insts(std::move(insts)),
         inst2Pos(std::move(inst2Pos)), symbolTable(std::move(symbolTable)),
         globalSymbol(std::move(globalSymbol)),
         containsExternalLabel(std::move(containsExternalLabel)),
-        containsRelocationFunc(std::move(containsRelocationFunc)) {}
+        containsRelocationFunc(std::move(containsRelocationFunc)),
+        toBeStored(std::move(toBeStored)) {}
 
   const Id &getId() const { return id; }
+
   const std::vector<std::byte> &getStorage() const { return storage; }
+
   const std::vector<std::shared_ptr<inst::Instruction>> &getInsts() const {
     return insts;
   }
+
   const std::unordered_map<inst::Instruction::Id, std::size_t> &
   getInst2Pos() const {
     return inst2Pos;
   }
+
   const std::unordered_map<std::string, std::size_t> &getSymbolTable() const {
     return symbolTable;
   }
+
   const std::unordered_set<std::string> &getGlobalSymbol() const {
     return globalSymbol;
   }
+
   const std::unordered_map<inst::Instruction::Id, std::string> &
   getContainsExternalLabel() const {
     return containsExternalLabel;
   }
+
   const std::unordered_map<inst::Instruction::Id, RelocationFunction> &
   getContainsRelocationFunc() const {
     return containsRelocationFunc;
+  }
+
+  const std::vector<std::pair<std::string, std::size_t>> &
+  getToBeStored() const {
+    return toBeStored;
   }
 
 private:
@@ -102,6 +116,7 @@ private:
   std::unordered_map<inst::Instruction::Id, std::string> containsExternalLabel;
   std::unordered_map<inst::Instruction::Id, RelocationFunction>
       containsRelocationFunc;
+  std::vector<std::pair<std::string, std::size_t>> toBeStored;
 };
 
 } // namespace ravel

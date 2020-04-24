@@ -74,14 +74,16 @@ private:
 // helpful in the next phase.
 // (cf. `void mergeObjects(const ObjectFile & obj)`)
 //
-// Finally, we resolve global symbols and compute the relocation functions.
+// After that, we resolve global symbols and compute the relocation functions.
 // These will be done in a single pass since we will replace instructions in
 // `insts`, whence change the instruction ID.
 // (cf. `void handleRelocationFuncsAndExternalSymbols()`)
+//
+// Finally, we handle directives such as `.word symbol`.
 class Linker {
 public:
   explicit Linker(const std::vector<ObjectFile> &objectsList) {
-    for (auto &obj : objectsList)
+    for (const auto &obj : objectsList)
       objects.emplace(obj.getId(), obj);
   }
 
@@ -90,6 +92,16 @@ public:
     for (auto &[_, obj] : objects)
       mergeObject(obj);
     handleRelocationFuncsAndExternalSymbols();
+
+    for (auto &[objId, obj] : objects) {
+      auto startPos = startingPosition.at(objId);
+      for (auto [label, pos] : obj.getToBeStored()) {
+        std::uint32_t addr = symTable.resolve(objId, label);
+        pos += startPos;
+        *(std::uint32_t *)(storage.data() + pos) = addr;
+      }
+    }
+
     return {storage, insts};
   }
 
@@ -107,7 +119,7 @@ private:
   void prepare() {
     auto startObj = makeStartObj();
     objects.emplace(startObj.getId(), startObj);
-    for (auto &[name, pos] : libc::getName2Pos()) {
+    for (const auto &[name, pos] : libc::getName2Pos()) {
       symTable.addGlobalSymbol(name, pos);
     }
 
@@ -124,7 +136,7 @@ private:
     auto basePos = startingPosition.at(obj.getId());
     std::copy(obj.getStorage().begin(), obj.getStorage().end(),
               storage.begin() + basePos);
-    for (auto &inst : obj.getInsts()) {
+    for (const auto &inst : obj.getInsts()) {
       auto pos = basePos + obj.getInst2Pos().at(inst->getId());
       assert(pos + 3 < storage.size());
       *(std::uint32_t *)(storage.data() + pos) = insts.size();
