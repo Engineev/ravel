@@ -40,7 +40,7 @@ public:
         config.cacheEnabled = true;
         continue;
       }
-      if (arg == "--timeout") {
+      if (starts_with(arg, "--timeout")) {
         auto tokens = split(arg, "=");
         config.timeout = std::stoul(tokens.at(1));
         continue;

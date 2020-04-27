@@ -94,7 +94,7 @@ int main() {
 
 /*!! metadata:
 === comment ===
-maxflow-5100379110-daibo.mx
+// maxflow-5100379110-daibo.mx
 === input ===
 
 === assert ===

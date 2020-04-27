@@ -301,13 +301,13 @@ void Interpreter::interpret() {
       continue;
     }
 
-    // auto instIdx = *(std::uint32_t *)(storage.data() + pc);
-    auto [instIdx, hit] = cache.get(pc);
-    if (hit)
-      instCnt.cache++;
-    else
-      instCnt.mem++;
-    auto &inst = interpretable.getInsts().at(instIdx);
+    auto instIdx = *(std::uint32_t *)(storage.data() + pc);
+    // auto [instIdx, hit] = cache.get(pc);
+    // if (hit)
+    //   instCnt.cache++;
+    // else
+    //   instCnt.mem++;
+    const auto &inst = interpretable.getInsts().at(instIdx);
     if (printInstructions) {
       std::cerr << pc << ": " << toString(inst);
       if (!inst->getComment().empty())

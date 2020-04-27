@@ -4,6 +4,8 @@
 #include <fstream>
 #include <iostream>
 
+#include "error.h"
+
 namespace ravel {
 
 Interpretable Simulator::buildInterpretable() {
@@ -12,6 +14,9 @@ Interpretable Simulator::buildInterpretable() {
   std::vector<ObjectFile> objs;
   for (auto &file : config.sources) {
     std::ifstream t(file);
+    if (!t) {
+      throw Exception("Can not find file " + file);
+    }
     std::string src((std::istreambuf_iterator<char>(t)),
                     std::istreambuf_iterator<char>());
     auto obj = assemble(src);

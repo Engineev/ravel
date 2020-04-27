@@ -4,7 +4,9 @@ cmake-build-*/
 build/
 test.s
 builtin.s
+builtin.c
+test.c
 test.in
 test.out
-test.c
 test.ll
+a.out

@@ -175,7 +175,6 @@ int main() {
   init();
   build(1, 1, n);
   while (m > 0) {
-    // printf("%d\n", m);
     op = Rand() % 2;
     pl = RandRange(1, n);
     pr = RandRange(1, n);
@@ -191,24 +190,5 @@ int main() {
   return 0;
 }
 
-/*!! metadata:
-=== comment ===
-segtree-515030910592-lijinning.txt
-=== is_public ===
-True
-=== assert ===
-output
-=== timeout ===
-1.5
-=== input ===
-40000
-40000
-9977
-=== phase ===
-optim pretest
-=== output ===
-21523
-=== exitcode ===
 
-
-!!*/
+// segtree-515030910592-lijinning.txt
