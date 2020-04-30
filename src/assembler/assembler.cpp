@@ -326,7 +326,13 @@ private:
 
   void handleInst(const std::string &line) {
     auto tokens = tokenize(line);
-    auto inst = parseInst(tokens);
+    std::shared_ptr<inst::Instruction> inst;
+    try {
+      inst = parseInst(tokens);
+    } catch (Exception &e) {
+      e.setMsg("When parsing \"" + line + "\", get: " + e.what());
+      throw e;
+    }
     assert(curPos + 3 < storage.size());
     *(std::uint32_t *)(storage.data() + curPos) = insts.size();
     insts.emplace_back(inst);

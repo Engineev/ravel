@@ -40,8 +40,6 @@ public:
 
   const std::string &getComment() const { return comment; }
 
-  void setComment(const std::string &comment_) { comment = comment_; }
-
 private:
   Id id;
   OpType op;
@@ -56,7 +54,7 @@ class ImmConstruction : public Instruction {
 public:
   ImmConstruction(OpType op, std::size_t dest, std::uint32_t imm)
       : Instruction(op), dest(dest), imm(imm) {
-    assert((imm >> 20) == 0 || ((-imm) >> 20) == 0);
+    assert((imm >> 20u) == 0 || ((-imm) >> 20u) == 0);
   }
 
   size_t getDest() const { return dest; }

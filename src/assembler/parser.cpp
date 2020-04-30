@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "container_utils.h"
+#include "error.h"
 
 namespace ravel {
 
@@ -175,6 +176,9 @@ inst::Instruction::OpType name2OpType(std::string name) {
 
 std::size_t regName2regNumber(const std::string &name) {
   if (name.at(0) == 'x') {
+    if (name.size() == 1 || !std::isdigit(name.at(1))) {
+      throw Exception("Unknown register: " + name);
+    }
     return (std::size_t)std::stoi(name.substr(1));
   }
 
@@ -188,7 +192,8 @@ std::size_t regName2regNumber(const std::string &name) {
       return i;
   }
 
-  assert(name == "fp");
+  if (name != "fp")
+    throw Exception("Unknown register: " + name);
   return 8;
 }
 

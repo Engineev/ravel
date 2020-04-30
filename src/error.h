@@ -9,9 +9,12 @@ namespace ravel {
 class Exception : public std::exception {
 public:
   explicit Exception(std::string msg) : msg(std::move(msg)) {}
+  Exception(const Exception &o) noexcept { msg = o.msg; }
   ~Exception() override = default;
 
   const char *what() const noexcept override { return msg.c_str(); }
+
+  void setMsg(const std::string &msg_) { msg = msg_; }
 
 private:
   std::string msg;
