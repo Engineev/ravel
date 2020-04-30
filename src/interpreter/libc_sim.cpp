@@ -5,11 +5,63 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <utility>
 
 #include "container_utils.h"
+#include "error.h"
 
 // IO
 namespace ravel::libc {
+namespace {
+
+std::size_t countFormatSigns(const std::string &fmtStr) {
+  std::size_t cnt = 0;
+  for (auto iter = fmtStr.begin(); iter != fmtStr.end(); ++iter) {
+    auto ch = *iter;
+    if (ch != '%')
+      continue;
+    ++cnt;
+    if (iter + 1 != fmtStr.end() && *(iter + 1) == '%')
+      ++iter;
+  }
+  return cnt;
+}
+
+// return the formatted string and the number of characters written (if
+// successful) or -1 if an error occurred
+std::pair<std::string, int> sprintfImpl(const std::string &fmtStr,
+                                        const std::vector<std::uint32_t> &args,
+                                        const std::vector<std::byte> &storage) {
+  std::string formattedStr;
+  std::size_t curArgIdx = 0;
+  for (std::size_t i = 0; i < fmtStr.size(); ++i) {
+    auto ch = fmtStr[i];
+    if (ch != '%') {
+      formattedStr.push_back(ch);
+      continue;
+    }
+    assert(i + 1 < fmtStr.size());
+    ++i;
+    ch = fmtStr[i];
+    if (ch == '%') {
+      formattedStr.push_back('%');
+      continue;
+    }
+    if (ch == 'd') {
+      formattedStr += std::to_string(args.at(curArgIdx++));
+      continue;
+    }
+    if (ch == 's') {
+      formattedStr +=
+          std::string((const char *)(storage.data() + args.at(curArgIdx++)));
+      continue;
+    }
+    throw RuntimeError("Invalid format string: " + fmtStr);
+  }
+
+  return {formattedStr, (int)formattedStr.size()};
+}
+} // namespace
 
 void puts(std::array<std::uint32_t, 32> &regs, std::vector<std::byte> &storage,
           FILE *fp) {
@@ -100,27 +152,27 @@ void sscanf(std::array<std::uint32_t, 32> &regs,
 void printf(std::array<std::uint32_t, 32> &regs,
             const std::vector<std::byte> &storage, FILE *fp) {
   auto fmtStr = std::string((const char *)(storage.data() + regs[10]));
-  std::size_t nSuccess = 0;
-  std::size_t curArg = 0;
-  for (std::size_t i = 0; i < fmtStr.size(); ++i) {
-    if (fmtStr[i] == '%') {
-      ++i;
-      assert(i != fmtStr.size());
-      if (fmtStr[i] == 'd') {
-        std::fprintf(fp, "%d", regs[11 + curArg]);
-      } else if (fmtStr[i] == 's') {
-        std::fprintf(fp, "%s",
-                     (const char *)(storage.data() + regs[11 + curArg]));
-      } else {
-        assert(false);
-      }
-      ++curArg;
-      ++nSuccess;
-      continue;
-    }
-    std::putc(fmtStr[i], fp);
-  }
-  regs[10] = nSuccess;
+  std::size_t nFormatSigns = countFormatSigns(fmtStr);
+  std::vector<std::uint32_t> arguments(regs.begin() + 11,
+                                       regs.begin() + 11 + nFormatSigns);
+  assert(arguments.size() <= 7);
+  auto [formattedStr, nSuccChars] = sprintfImpl(fmtStr, arguments, storage);
+  std::fprintf(fp, "%s", formattedStr.c_str());
+  regs[10] = nSuccChars;
+}
+
+void sprintf(std::array<std::uint32_t, 32> &regs,
+             std::vector<std::byte> &storage) {
+  std::size_t bufferVAddr = regs[10];
+  auto fmtStr = std::string((const char *)(storage.data() + regs[11]));
+  std::size_t nFormatSigns = countFormatSigns(fmtStr);
+  std::vector<std::uint32_t> arguments(regs.begin() + 12,
+                                       regs.begin() + 12 + nFormatSigns);
+  assert(arguments.size() <= 6);
+  auto [formattedStr, nSuccChars] = sprintfImpl(fmtStr, arguments, storage);
+  std::sprintf((char *)(storage.data() + bufferVAddr), "%s",
+               formattedStr.c_str());
+  regs[10] = nSuccChars;
 }
 
 void putchar(std::array<std::uint32_t, 32> &regs, FILE *fp) {

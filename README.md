@@ -70,7 +70,7 @@ following way. For each type of instructions, the number of execution is
 recorded during the interpretation, and `time` is computed by a weighted 
 summation. The default weights are listed in the following table.
 You can change the weights by passing in command line options like 
-`--wsimple=2`. By default, cache is disabled. You may enable it by passing in
+`-wsimple=2`. By default, cache is disabled. You may enable it by passing in
 `--enable-cache`. 
 
 | Type   | Weight |

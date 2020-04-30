@@ -18,6 +18,9 @@ void scanf(std::array<std::uint32_t, 32> &regs, std::vector<std::byte> &storage,
 void sscanf(std::array<std::uint32_t, 32> &regs,
             std::vector<std::byte> &storage);
 
+void sprintf(std::array<std::uint32_t, 32> &regs,
+             std::vector<std::byte> &storage);
+
 void printf(std::array<std::uint32_t, 32> &regs,
             const std::vector<std::byte> &storage, FILE *fp);
 

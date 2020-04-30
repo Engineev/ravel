@@ -342,6 +342,9 @@ void Interpreter::simulateLibCFunc(libc::Func funcN) {
   case libc::PRINTF:
     libc::printf(regs, storage, out);
     return;
+  case libc::SPRINTF:
+    libc::sprintf(regs, storage);
+    return;
   case libc::PUTCHAR:
     libc::putchar(regs, out);
     return;

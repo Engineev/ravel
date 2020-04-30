@@ -43,7 +43,7 @@ public:
   using Exception::Exception;
 };
 
-class InvalidAddress : Exception {
+class InvalidAddress : public Exception {
 public:
   explicit InvalidAddress(std::size_t address) : Exception("") {
     std::stringstream ss;
@@ -57,7 +57,11 @@ private:
   std::string msg;
 };
 
-class Timeout : Exception {
+class Timeout : public Exception {
+  using Exception::Exception;
+};
+
+class RuntimeError : public Exception {
   using Exception::Exception;
 };
 

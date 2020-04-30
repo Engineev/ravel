@@ -48,16 +48,17 @@ enum Func {
   SCANF = 14,
   SSCANF = 16,
   PRINTF = 18,
-  PUTCHAR = 20,
+  SPRINTF = 20,
+  PUTCHAR = 22,
 
-  MALLOC = 22,
-  FREE = 24,
-  MEMCPY = 26,
-  STRLEN = 28,
-  STRCPY = 30,
-  STRCAT = 32,
-  STRCMP = 34,
-  MEMSET = 36,
+  MALLOC = 24,
+  FREE = 26,
+  MEMCPY = 28,
+  STRLEN = 30,
+  STRCPY = 32,
+  STRCAT = 34,
+  STRCMP = 36,
+  MEMSET = 38,
 };
 
 inline const std::unordered_map<std::string, Func> &getName2Pos() {
@@ -71,6 +72,7 @@ inline const std::unordered_map<std::string, Func> &getName2Pos() {
       {"sscanf", SSCANF},
       {"__isoc99_sscanf", SSCANF},
       {"printf", PRINTF},
+      {"sprintf", SPRINTF},
       {"putchar", PUTCHAR},
 
       // mem
