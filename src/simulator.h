@@ -16,6 +16,7 @@ struct Config {
 
   bool printInsts = false;
   bool cacheEnabled = false;
+  bool keepDebugInfo = false;
   std::string inputFile;
   std::string outputFile;
   std::vector<std::string> sources;

@@ -42,7 +42,9 @@ ravel --input-file=test.in --output-file=test.out test.s builtin.s
 
 If you'd like to see the instructions being executed, you may pass in command
 line option `--print-instructions`, but note that this will slow down the 
-simulation significantly.
+simulation significantly. Also, by passing in `--keep-debug-info`, **ravel**
+will print information like the call stack if an error occurred, which might
+be helpful.
 
 ## Support
 

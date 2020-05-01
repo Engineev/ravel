@@ -40,6 +40,10 @@ public:
         config.cacheEnabled = true;
         continue;
       }
+      if (arg == "--keep-debug-info") {
+        config.keepDebugInfo = true;
+        continue;
+      }
       if (starts_with(arg, "--timeout")) {
         auto tokens = split(arg, "=");
         config.timeout = std::stoul(tokens.at(1));

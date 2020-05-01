@@ -47,6 +47,8 @@ public:
 
   void disableCache() { cache.disable(); }
 
+  void setKeepDebugInfo(bool val) { keepDebugInfo = val; }
+
   std::uint32_t getReturnCode() const;
 
   bool hasMemoryLeak() const { return !malloced.empty(); }
@@ -63,9 +65,7 @@ public:
 
   void enablePrintInstructions() { printInstructions = true; }
 
-  void setTimeout(std::size_t newTimeout) {
-    timeout = newTimeout;
-  }
+  void setTimeout(std::size_t newTimeout) { timeout = newTimeout; }
 
 private:
   void load();
@@ -89,7 +89,8 @@ private:
   InstWeight instWeight;
   InstCnt instCnt;
   bool printInstructions = false;
-  std::size_t timeout = (std::size_t) -1;
+  bool keepDebugInfo = false;
+  std::size_t timeout = (std::size_t)-1;
 };
 
 } // namespace ravel

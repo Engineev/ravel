@@ -3,6 +3,9 @@
 #include <cassert>
 #include <functional>
 #include <iostream>
+#include <memory>
+#include <queue>
+#include <stack>
 
 #include "assembler/parser.h"
 #include "error.h"
@@ -275,48 +278,97 @@ void Interpreter::load() {
   regs.at(regName2regNumber("sp")) = MaxStorageSize;
 }
 
+namespace {
+struct DebugStackFrame {
+  void addInstruction(std::shared_ptr<inst::Instruction> inst) {
+    lastFewInstructions.emplace(std::move(inst));
+    if (lastFewInstructions.size() > MaxSize)
+      lastFewInstructions.pop();
+  }
+
+  static constexpr std::size_t MaxSize = 8;
+  std::queue<std::shared_ptr<inst::Instruction>> lastFewInstructions;
+};
+} // namespace
+
+namespace {
+
+void printInstWithComment(const std::shared_ptr<inst::Instruction> &inst) {
+  std::cerr << toString(inst);
+  if (!inst->getComment().empty())
+    std::cerr << "  # " << inst->getComment();
+  std::cerr << std::endl;
+}
+
+} // namespace
+
 void Interpreter::interpret() {
   load();
   std::size_t numInsts = 0;
-  while (pc != Interpretable::End) {
-    if (!(0 <= pc && (std::uint32_t)pc < storage.size())) {
-      throw InvalidAddress(pc);
-    }
-    ++numInsts;
-    if (numInsts > timeout) {
-      throw Timeout("");
-    }
-    cache.tick();
-    if (Interpretable::LibcFuncStart <= (std::uint32_t)pc &&
-        (std::uint32_t)pc < Interpretable::LibcFuncEnd) {
-      if (printInstructions)
-        std::cerr << pc << ": call libc-" << pc << std::endl;
-      simulateLibCFunc(libc::Func(pc));
-      pc = regs[1];
-      // force the calling convention
-      int callerSaved[] = {1,  5,  6,  7,  /* 10, */ 11, 12, 13, 14,
-                           15, 16, 17, 28, 29,           30, 31};
-      for (auto reg : callerSaved)
-        regs[reg] += 0x1234;
-      continue;
-    }
 
-    auto instIdx = *(std::uint32_t *)(storage.data() + pc);
-    // auto [instIdx, hit] = cache.get(pc);
-    // if (hit)
-    //   instCnt.cache++;
-    // else
-    //   instCnt.mem++;
-    const auto &inst = interpretable.getInsts().at(instIdx);
-    if (printInstructions) {
-      std::cerr << pc << ": " << toString(inst);
-      if (!inst->getComment().empty())
-        std::cerr << "  # " << inst->getComment();
-      std::cerr << std::endl;
+  std::stack<DebugStackFrame> debugStack;
+  debugStack.emplace();
+
+  try {
+    while (pc != Interpretable::End) {
+      if (!(0 <= pc && (std::uint32_t)pc < storage.size())) {
+        throw InvalidAddress(pc);
+      }
+      ++numInsts;
+      if (numInsts > timeout) {
+        throw Timeout("");
+      }
+      cache.tick();
+      if (Interpretable::LibcFuncStart <= (std::uint32_t)pc &&
+          (std::uint32_t)pc < Interpretable::LibcFuncEnd) {
+        if (printInstructions)
+          std::cerr << pc << ": call libc-" << pc << std::endl;
+        simulateLibCFunc(libc::Func(pc));
+        pc = regs[1];
+        // force the calling convention
+        int callerSaved[] = {1,  5,  6,  7,  /* 10, */ 11, 12, 13, 14,
+                             15, 16, 17, 28, 29,           30, 31};
+        for (auto reg : callerSaved)
+          regs[reg] += 0x1234;
+        continue;
+      }
+
+      auto instIdx = *(std::uint32_t *)(storage.data() + pc);
+      // We no longer take the mem/cache access in the IF stage into
+      // consideration
+      const auto &inst = interpretable.getInsts().at(instIdx);
+
+      if (keepDebugInfo) {
+        debugStack.top().addInstruction(inst);
+        if (inst->getOp() == inst::Instruction::JALR) {
+          debugStack.emplace();
+        }
+      }
+      if (printInstructions) {
+        printInstWithComment(inst);
+      }
+
+      simulate(inst);
+      regs[0] = 0;
+      pc += 4;
     }
-    simulate(inst);
-    regs[0] = 0;
-    pc += 4;
+  } catch (std::exception &e) {
+    if (!keepDebugInfo)
+      return;
+    std::cerr << "\nSome error occurred! Printing the call stack...\n";
+    while (!debugStack.empty()) {
+      auto &frame = debugStack.top().lastFewInstructions;
+      while (!frame.empty()) {
+        std::cerr << "\t";
+        printInstWithComment(frame.front());
+        frame.pop();
+      }
+      debugStack.pop();
+      if (!debugStack.empty())
+        std::cerr << "from ...\n";
+    }
+    std::cerr << std::endl;
+    throw e;
   }
 }
 
