@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <queue>
@@ -122,6 +123,10 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   if (Op::LB <= op && op <= Op::SW) {
     auto &p = spc<inst::MemAccess>(inst);
     std::size_t vAddr = regs.at(p.getBase()) + p.getOffset();
+    if (keepDebugInfo && isIn(invalidAddress, vAddr)) {
+      throw InvalidAddress(vAddr);
+    }
+
     bool hit = cache.get(vAddr).second;
     if (hit && Op::LB <= op && op <= Op::LW)
       ++instCnt.cache;
@@ -323,6 +328,9 @@ void Interpreter::interpret() {
           (std::uint32_t)pc < Interpretable::LibcFuncEnd) {
         if (printInstructions)
           std::cerr << pc << ": call libc-" << pc << std::endl;
+        if (keepDebugInfo) {
+          debugStack.pop();
+        }
         simulateLibCFunc(libc::Func(pc));
         pc = regs[1];
         // force the calling convention
@@ -341,7 +349,13 @@ void Interpreter::interpret() {
       if (keepDebugInfo) {
         debugStack.top().addInstruction(inst);
         if (inst->getOp() == inst::Instruction::JALR) {
-          debugStack.emplace();
+          // ret -> jalr x0, x1, 0
+          const auto &jalr = spc<inst::JumpLinkReg>(inst);
+          if (jalr.getDest() == 0 && jalr.getBase() == 1 &&
+              jalr.getOffset() == 0)
+            debugStack.pop();
+          else
+            debugStack.emplace();
         }
       }
       if (printInstructions) {
@@ -354,10 +368,19 @@ void Interpreter::interpret() {
     }
   } catch (std::exception &e) {
     if (!keepDebugInfo)
-      return;
-    std::cerr << "\nSome error occurred! Printing the call stack...\n";
+      throw;
+    std::cerr << "\nSome error occurred.\n";
+    std::cerr << "Printing the register state...";
+    for (std::size_t i = 0; i < 32; ++i) {
+      if (i % 8 == 0)
+        std::cerr << "\n";
+      std::cerr << std::setw(4) << regNumber2regName(i) << " = "
+                << std::setw(11) << regs.at(i) << ",\t";
+    }
+    std::cerr << "\n\nPrinting the call stack...\n";
     while (!debugStack.empty()) {
       auto &frame = debugStack.top().lastFewInstructions;
+      std::cerr << "\t...\n";
       while (!frame.empty()) {
         std::cerr << "\t";
         printInstWithComment(frame.front());
@@ -368,7 +391,7 @@ void Interpreter::interpret() {
         std::cerr << "from ...\n";
     }
     std::cerr << std::endl;
-    throw e;
+    throw;
   }
 }
 
@@ -401,7 +424,8 @@ void Interpreter::simulateLibCFunc(libc::Func funcN) {
     libc::putchar(regs, out);
     return;
   case libc::MALLOC:
-    libc::malloc(regs, storage, heapPtr, malloced, instCnt.libcMem);
+    libc::malloc(regs, storage, heapPtr, malloced, invalidAddress,
+                 instCnt.libcMem);
     return;
   case libc::FREE:
     libc::free(regs, malloced);

@@ -83,6 +83,7 @@ private:
   Cache cache;
   std::size_t heapPtr = 0;
   std::unordered_set<std::size_t> malloced;
+  std::unordered_set<std::size_t> invalidAddress;
 
   FILE *in;
   FILE *out;

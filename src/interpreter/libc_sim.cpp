@@ -191,13 +191,21 @@ constexpr std::size_t MemSizeFactor = 512;
 
 void malloc(std::array<std::uint32_t, 32> &regs,
             const std::vector<std::byte> &storage, std::size_t &heapPtr,
-            std::unordered_set<std::size_t> &malloced, std::size_t &instCnt) {
+            std::unordered_set<std::size_t> &malloced,
+            std::unordered_set<std::size_t> &invalidAddress,
+            std::size_t &instCnt) {
   auto size = (std::size_t)regs[10];
   instCnt += size / MemSizeFactor;
   regs[10] = heapPtr;
   malloced.emplace(heapPtr);
   heapPtr += size;
-  assert(heapPtr < storage.size());
+  invalidAddress.emplace(heapPtr++);
+  if (heapPtr % 2) {
+    invalidAddress.emplace(heapPtr++);
+  }
+  if (heapPtr >= storage.size()) {
+    throw RuntimeError("Running out of memory");
+  }
 }
 
 void free(const std::array<std::uint32_t, 32> &regs,
