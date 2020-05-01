@@ -72,6 +72,7 @@ functions, you may open an issue.
 |`scanf` (partially supported)
 |`sscanf` (partially supported)
 |`printf` (partially supported)
+|`sprintf` (partially supported)
 |`putchar`
 |`malloc`
 |`free`

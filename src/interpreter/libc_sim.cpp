@@ -48,7 +48,7 @@ std::pair<std::string, int> sprintfImpl(const std::string &fmtStr,
       continue;
     }
     if (ch == 'd') {
-      formattedStr += std::to_string(args.at(curArgIdx++));
+      formattedStr += std::to_string((std::int32_t)args.at(curArgIdx++));
       continue;
     }
     if (ch == 's') {
@@ -153,8 +153,7 @@ void printf(std::array<std::uint32_t, 32> &regs,
             const std::vector<std::byte> &storage, FILE *fp) {
   auto fmtStr = std::string((const char *)(storage.data() + regs[10]));
   std::size_t nFormatSigns = countFormatSigns(fmtStr);
-  std::vector<std::uint32_t> arguments(regs.begin() + 11,
-                                       regs.begin() + 11 + nFormatSigns);
+  std::vector arguments(regs.begin() + 11, regs.begin() + 11 + nFormatSigns);
   assert(arguments.size() <= 7);
   auto [formattedStr, nSuccChars] = sprintfImpl(fmtStr, arguments, storage);
   std::fprintf(fp, "%s", formattedStr.c_str());
@@ -166,8 +165,7 @@ void sprintf(std::array<std::uint32_t, 32> &regs,
   std::size_t bufferVAddr = regs[10];
   auto fmtStr = std::string((const char *)(storage.data() + regs[11]));
   std::size_t nFormatSigns = countFormatSigns(fmtStr);
-  std::vector<std::uint32_t> arguments(regs.begin() + 12,
-                                       regs.begin() + 12 + nFormatSigns);
+  std::vector arguments(regs.begin() + 12, regs.begin() + 12 + nFormatSigns);
   assert(arguments.size() <= 6);
   auto [formattedStr, nSuccChars] = sprintfImpl(fmtStr, arguments, storage);
   std::sprintf((char *)(storage.data() + bufferVAddr), "%s",
