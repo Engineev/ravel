@@ -123,7 +123,10 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   if (Op::LB <= op && op <= Op::SW) {
     auto &p = spc<inst::MemAccess>(inst);
     std::size_t vAddr = regs.at(p.getBase()) + p.getOffset();
-    if (keepDebugInfo && isIn(invalidAddress, vAddr)) {
+    if (keepDebugInfo && (isIn(invalidAddress, vAddr) ||  vAddr == 0)) {
+      // Accessing 0x0 is always invalid since an instruction is stored there.
+      // Perform this check since many student use 0x0 as the actual value of
+      // null.
       throw InvalidAddress(vAddr);
     }
 
