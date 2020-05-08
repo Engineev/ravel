@@ -106,27 +106,57 @@ int erase(int key) {
   return eraseImpl(root, NULL, -1, key);
 }
 
-void print(struct Node *cur) {
+void printTree(struct Node *cur) {
   if (cur == NULL)
     return;
-  print(cur->children[0]);
+  printTree(cur->children[0]);
   printf("%d: %d\n", cur->key, cur->duplicate);
-  print(cur->children[1]);
+  printTree(cur->children[1]);
 }
 
-int main() {
-  while (1) {
-    int type, value;
-    scanf("%d", &type);
-    if (type == 0)
-      break;
-    scanf("%d", &value);
-    if (type == 1) {
+int MAX = 128;
+int MaxRandInt = ~(1 << 31);
+int seed;
+
+// In mx, we do not have unsigned int. Hence, we only use the least
+// 31 bits of an integer here.
+int randInt31() {
+  int x = seed;
+  x = x ^ (x << 13);
+  x &= ~(1 << 31);
+  x = x ^ (x >> 17);
+  x = x ^ (x << 5);
+  x &= ~(1 << 31);
+  seed = x;
+  return x;
+}
+
+// probability = p / PM
+int randOp(int n) {
+  if (randInt31() < n) {
+    return 1;
+  }
+  return 2;
+}
+
+void generateOperations(int n, int t) {
+  int i;
+  for (i = 0; i < t; ++i) {
+    int value = randInt31() % MAX;
+    if (randOp(n) == 1) {
       insert(value);
     } else {
       erase(value);
     }
   }
-  print(root);
+}
+
+int main() {
+  scanf("%d", &seed);
+  int m = 50000;
+  generateOperations(8 * (MaxRandInt / 10), m);
+  generateOperations(2 * (MaxRandInt / 10), 2 * m);
+  generateOperations(4 * (MaxRandInt / 10), m);
+  printTree(root);
   return 0;
 }
