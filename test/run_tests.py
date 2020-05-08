@@ -17,7 +17,10 @@ test_cases = [
     'optim/segtree',
     'optim/lunatic',
     'optim/maxflow',
-    'optim/dijkstra'
+    'optim/dijkstra',
+    'optim/lca',
+    'optim/binary_tree',
+    'optim/kruskal'
 ]
 test_cases.sort()
 
@@ -47,6 +50,7 @@ os.chdir(directory)
 os.system('cp ../build/src/ravel ./')
 
 # test
+print("%d test cases." % len(test_cases))
 failed_test_cases = []
 for test_case in test_cases:
     print(test_case + ': ', end='\t', flush=True)
@@ -81,8 +85,7 @@ for test_case in test_cases:
                   + color_none, end='\t', flush=True)
     print('')
 
-execute('rm ravel test.ans test.c test.in test.ll ' +
-        'test.out test.s diff.out ravel.out')
+execute('rm ravel test.ans test.c test.in test.out test.s ravel.out')
 if len(failed_test_cases) == 0:
     print('Passed all test cases')
     exit(0)
