@@ -88,7 +88,8 @@ void scanf(std::array<std::uint32_t, 32> &regs, std::vector<std::byte> &storage,
     if (fmtCh == '%') {
       ++iter;
       fmtCh = *iter;
-      //      assert(fmtCh == 'd');
+      if (regs[11 + assigned] >= storage.size())
+        throw InvalidAddress(regs[11 + assigned]);
       if (fmtCh == 'd') {
         succeeded = std::fscanf(fp, "%d",
                                 (int *)(storage.data() + regs[11 + assigned]));

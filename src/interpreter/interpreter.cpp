@@ -123,7 +123,7 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   if (Op::LB <= op && op <= Op::SW) {
     auto &p = spc<inst::MemAccess>(inst);
     std::size_t vAddr = regs.at(p.getBase()) + p.getOffset();
-    if (keepDebugInfo && (isIn(invalidAddress, vAddr) ||  vAddr == 0)) {
+    if (keepDebugInfo && (isIn(invalidAddress, vAddr) || vAddr == 0)) {
       // Accessing 0x0 is always invalid since an instruction is stored there.
       // Perform this check since many student use 0x0 as the actual value of
       // null.
@@ -308,6 +308,27 @@ void printInstWithComment(const std::shared_ptr<inst::Instruction> &inst) {
   std::cerr << std::endl;
 }
 
+std::optional<std::size_t>
+getModifiedReg(const std::shared_ptr<inst::Instruction> &inst) {
+  auto op = inst->getOp();
+  if (inst::Instruction::LUI <= op && op <= inst::Instruction::AUIPC) {
+    return spc<inst::ImmConstruction>(inst).getDest();
+  }
+  if (op == inst::Instruction::JAL)
+    return spc<inst::JumpLink>(inst).getDest();
+  if (op == inst::Instruction::JALR)
+    return spc<inst::JumpLinkReg>(inst).getDest();
+  if (inst::Instruction::LB <= op && op <= inst::Instruction::LHU)
+    return spc<inst::MemAccess>(inst).getReg();
+  if (inst::Instruction::ADDI <= op && op <= inst::Instruction::SRAI)
+    return spc<inst::ArithRegImm>(inst).getDest();
+  if (inst::Instruction::ADD <= op && op <= inst::Instruction::AND)
+    return spc<inst::ArithRegReg>(inst).getDest();
+  if (inst::Instruction::MUL <= op && op <= inst::Instruction::REMU)
+    return spc<inst::MArith>(inst).getDest();
+  return std::nullopt;
+}
+
 } // namespace
 
 void Interpreter::interpret() {
@@ -329,12 +350,16 @@ void Interpreter::interpret() {
       cache.tick();
       if (Interpretable::LibcFuncStart <= (std::uint32_t)pc &&
           (std::uint32_t)pc < Interpretable::LibcFuncEnd) {
-        if (printInstructions)
-          std::cerr << pc << ": call libc-" << pc << std::endl;
+        if (printInstructions) {
+          std::cerr << "call libc-" << pc << std::endl;
+        }
         if (keepDebugInfo) {
           debugStack.pop();
         }
         simulateLibCFunc(libc::Func(pc));
+        if (printInstructions) {
+          std::cerr << "\t\t# return value = " << regs.at(10) << std::endl;
+        }
         pc = regs[1];
         // force the calling convention
         int callerSaved[] = {1,  5,  6,  7,  /* 10, */ 11, 12, 13, 14,
@@ -361,11 +386,29 @@ void Interpreter::interpret() {
             debugStack.emplace();
         }
       }
+      std::size_t modifiedReg = -1;
+      std::uint64_t oldVal = -1;
       if (printInstructions) {
         printInstWithComment(inst);
+        if (auto opt = getModifiedReg(inst)) {
+          modifiedReg = opt.value();
+          oldVal = regs.at(modifiedReg);
+        }
       }
 
       simulate(inst);
+
+      if (printInstructions) {
+        if (modifiedReg != -1) {
+          std::cerr << "\t\t# " << regNumber2regName(modifiedReg) << ": "
+                    << oldVal << " -> " << regs.at(modifiedReg) << std::endl;
+        } else if (inst::Instruction::SB <= inst->getOp() &&
+                   inst->getOp() <= inst::Instruction::SW) {
+          auto reg = spc<inst::MemAccess>(inst).getReg();
+          std::cerr << "\t\t# stored value = " << regs.at(reg) << std::endl;
+        }
+      }
+
       regs[0] = 0;
       pc += 4;
     }

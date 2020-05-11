@@ -120,6 +120,10 @@ std::string translatePseudoInstruction(const std::string &line) {
            tokens.at(3);
   }
   if (opname.front() == 'b' && opname.back() == 'z') {
+    static const std::unordered_set<std::string> BranchZero = {
+        "beqz", "bnez", "bgtz", "bltz", "blez", "bgez",
+    };
+    assert(isIn(BranchZero, opname));
     opname.pop_back();
     bool reverse = isIn(branchPair, opname);
     if (reverse)
