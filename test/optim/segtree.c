@@ -1,19 +1,46 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int b[500005];
-int now[500005];
-int t[500005];
-int a[200005];
+int* b;
+int* now;
+int* t;
+int* a;
 int n;
 int m;
 int p;
 int op;
 int L = 1;
-int flag[500005];
-int s[500005][80];
-int sum[500005];
+int* flag;
+int** s;
+int* sum;
 int ans = 0;
+
+//int b[500005];
+//int now[500005];
+//int t[500005];
+//int a[200005];
+//int n;
+//int m;
+//int p;
+//int op;
+//int L = 1;
+//int flag[500005];
+//int s[500005][80];
+//int sum[500005];
+//int ans = 0;
+
+void init_global_array() {
+  int sz = sizeof(int);
+  b = malloc(sz * 500005);
+  now = malloc(sz * 500005);
+  t = malloc(sz * 500005);
+  a = malloc(sz * 200005);
+  flag = malloc(sz * 500005);
+  s = malloc(sizeof(int*) * 500005);
+  for (int i = 0; i < 500005; ++i)
+    s[i] = malloc(sz * 80);
+  sum = malloc(sz * 500005);
+}
 
 int square(int x) { return (x % p) * (x % p); }
 
@@ -46,7 +73,8 @@ int Rand() {
 int RandRange(int low, int high) { return low + Rand() % (high - low + 1) + 1; }
 
 void init() {
-  int c[140005];
+  int* c;
+  c = malloc(sizeof(int) * 140005);
   int i = 0;
   int j = 0;
   for (i = 2; i < p; ++i)
@@ -167,6 +195,7 @@ int query(int o, int l, int r) {
 }
 
 int main() {
+  init_global_array();
   scanf("%d%d", &n, &m);
   scanf("%d", &p);
   int i = 1;

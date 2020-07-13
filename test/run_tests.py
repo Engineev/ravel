@@ -5,9 +5,7 @@ import subprocess
 compilers = {
     'gcc': 'riscv32-unknown-linux-gnu-gcc -S -fno-section-anchors -O%d ' +
            '-o test.s test.c',
-    # 'clang': 'clang-9 -S -emit-llvm -O%d -o test.ll test.c; ' +
-    #          'llc-9 --march=riscv32 -mattr=+m -o test.s test.ll'
-    # It seems that this command sequence is wrong...
+    # 'clang': 'clang-9 --target=riscv32 -march=rv32ima -S -O%d -o test.s test.c'
 }
 
 test_cases = [
