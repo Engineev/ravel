@@ -108,11 +108,12 @@ public:
 private:
   static ObjectFile makeStartObj() {
     std::string src = ".text\n_start:\ncall main\nnop";
-    for (int i = 0; i < 48 - (3 * 4); i += 4) {
+    for (int i = 0; i < libc::LibcFuncEndAddr - (3 * 4); i += 4) {
       src += "\nnop";
     }
+
     auto res = assemble(src);
-    assert(res.getStorage().size() == 48);
+    assert(res.getStorage().size() == libc::LibcFuncEndAddr);
     return res;
   }
 

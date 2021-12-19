@@ -64,7 +64,8 @@ RV32I base instruction set and RV32M standard extension are supported except
 
 ## Libc Functions
 Currently, the following libc functions are supported. If you need other libc
-functions, you may open an issue.
+functions, you may open an issue. You can also check the instructions in `doc/support-new-libc-func.md` and
+add the needed libc function yourself. 
 
 | Function signature |
 |:---|
@@ -75,6 +76,7 @@ functions, you may open an issue.
 |`sprintf` (partially supported)
 |`putchar`
 |`malloc`
+|`calloc`
 |`free`
 |`memcpy`
 |`strlen`

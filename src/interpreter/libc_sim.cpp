@@ -191,15 +191,19 @@ constexpr std::size_t MemSizeFactor = 512;
 } // namespace
 
 void malloc(std::array<std::uint32_t, 32> &regs,
-            const std::vector<std::byte> &storage, std::size_t &heapPtr,
+            std::vector<std::byte> &storage, std::size_t &heapPtr,
             std::unordered_set<std::size_t> &malloced,
             std::unordered_set<std::size_t> &invalidAddress,
-            std::size_t &instCnt) {
+            std::size_t &instCnt, bool zeroInit) {
   auto size = (std::size_t)regs[10];
   instCnt += size / MemSizeFactor;
   regs[10] = heapPtr;
   malloced.emplace(heapPtr);
   heapPtr += size;
+  if (zeroInit) {
+    std::fill(storage.begin() + regs[10], storage.begin() + heapPtr,
+              std::byte(0));
+  }
   invalidAddress.emplace(heapPtr++);
   if (heapPtr % 2) {
     invalidAddress.emplace(heapPtr++);

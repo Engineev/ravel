@@ -1,5 +1,10 @@
 #pragma once
 
+/* How to add support for a new libc function
+ *
+ *
+ */
+
 #include <array>
 #include <cstddef>
 #include <cstdio>
@@ -31,10 +36,10 @@ void putchar(std::array<std::uint32_t, 32> &regs, FILE *fp);
 namespace ravel::libc {
 
 void malloc(std::array<std::uint32_t, 32> &regs,
-            const std::vector<std::byte> &storage, std::size_t &heapPtr,
+            std::vector<std::byte> &storage, std::size_t &heapPtr,
             std::unordered_set<std::size_t> &malloced,
             std::unordered_set<std::size_t> &invalidAddress,
-            std::size_t &instCnt);
+            std::size_t &instCnt, bool zeroInit = false);
 
 void free(const std::array<std::uint32_t, 32> &regs,
           std::unordered_set<std::size_t> &malloced);

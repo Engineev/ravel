@@ -444,7 +444,7 @@ void Interpreter::interpret() {
 void Interpreter::simulateLibCFunc(libc::Func funcN) {
   if (libc::PUTS <= funcN && funcN <= libc::PUTCHAR)
     ++instCnt.libcIO;
-  else if (libc::MALLOC <= funcN && funcN <= libc::MEMSET) {
+  else if (libc::MALLOC <= funcN && funcN <= libc::CALLOC) {
     // the actual update to instCnt is function-dependent. See the
     // implementations of each function for details
     ++instCnt.libcMem;
@@ -472,6 +472,10 @@ void Interpreter::simulateLibCFunc(libc::Func funcN) {
   case libc::MALLOC:
     libc::malloc(regs, storage, heapPtr, malloced, invalidAddress,
                  instCnt.libcMem);
+    return;
+  case libc::CALLOC:
+    libc::malloc(regs, storage, heapPtr, malloced, invalidAddress,
+                 instCnt.libcMem, true);
     return;
   case libc::FREE:
     libc::free(regs, malloced);
