@@ -8,7 +8,7 @@
 ## Introduction
 
 **ravel** is a RISC-V simulator written for the compiler course taught at 
-Shanghai Jiao Tong University, where the students are typically second-year
+Shanghai Jiao Tong University, and the students in this course are usually second-year
 undergraduates at ACM Honers Class. In this course, students are required to
 implement a toy compiler that turns Mx* (a toy language used in the course) to
 RISC-V assembly. This simulator is used to test the correctness of the 
@@ -37,14 +37,14 @@ code, `test.in` as the input and redirect the program output into `test.out`.
 The results (e.g. exit code) of the simulation will still be outputted directly
 to `stdout`. This is equivalent to
 ```shell script
-ravel --input-file=test.in --output-file=test.out test.s builtin.s 
+ravel --input-file=test.in --output-file=test.out test.s builtin.s
+# By default, cache is disabled. You can use --enable-cache to turn it on.
 ```
 
 If you'd like to see the instructions being executed, you may pass in command
-line option `--print-instructions`, but note that this will slow down the 
-simulation significantly. Also, if `--keep-debug-info` is passed in, **ravel**
-will perform more checks on memory access and will print information like the
-call stack if an error occurred, which might be helpful.
+line option `--print-instructions`, but note that this will significantly slow down the 
+simulation. Also, if `--keep-debug-info` is passed in, **ravel** will perform more checks on 
+memory accesses and will print additional information like the call stack when an error occurred.
 
 ## Support
 
@@ -57,14 +57,18 @@ where the build of `gcc` is configured with
 ```shell script
 ./configure --prefix=/opt/riscv --with-arch=rv32ima --with-abi=ilp32
 ```
-then in most cases it is supported by the simulator. For LLVM users, the 
-command should be 
-```shell script
-llc --march=riscv32 --mattr=+m main.ll
-```
+then in most cases it is supported by the simulator.
+
+[comment]: <> (For LLVM users, the command should be )
+
+[comment]: <> (```shell script)
+
+[comment]: <> (llc --march=riscv32 --mattr=+m main.ll)
+
+[comment]: <> (```)
 See [this](https://github.com/riscv/riscv-gnu-toolchain) for information on the
 risc-v toolchain. For detail on supported directives, instructions and libc
-functions, see [this](./doc/support.md).  
+functions, see [doc/support.md](./doc/support.md).  
 
 ## Computing the running time
 The output of **ravel** contains a `time` filed. This is computed in the 
@@ -86,5 +90,12 @@ You can change the weights by passing in command line options like
 |libcIO  | 64
 |libcMem | function-dependent
 
-Note: Unconditional jumps are viewed as simple instructions, and the weights 
-used in the test are still **subject to change**.
+Note: Unconditional jumps are viewed as simple instructions.
+
+## Pronunciation
+
+This project is named after the French composer Maurice Ravel, so the most correct way to pronounce the project name
+in English is /rəˈvɛl/ or /ræˈvɛl/, though I'm also OK with the pronunciation /ˈravəl/. 
+
+In any case, how about checking this colorful [piano concerto](https://youtu.be/cJOW5mlhH_Y) by Ravel?
+
