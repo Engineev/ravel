@@ -23,8 +23,7 @@ const T &spc(const std::shared_ptr<inst::Instruction> &inst) {
 } // namespace
 
 void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
-  // Do NOT use dynamic cast, it is too time-consuming
-  // TODO: use switch instead of a chain of if-else
+  // Do NOT use dynamic cast. It is too time-consuming
   using Op = inst::Instruction::OpType;
   auto op = inst->getOp();
 
@@ -36,21 +35,6 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   // };
   // auto resetZero = Raii([this] { regs[0] = 0; });
   // auto pcAdd4 = Raii([this] { pc += 4; });
-
-  // ImmConstruction
-  if (op == inst::Instruction::LUI) {
-    ++instCnt.simple;
-    auto &p = spc<inst::ImmConstruction>(inst);
-    regs.at(p.getDest()) = p.getImm() << 12u;
-    return;
-  }
-  if (op == inst::ImmConstruction::AUIPC) {
-    ++instCnt.simple;
-    auto &p = spc<inst::ImmConstruction>(inst);
-    std::int32_t offset = (std::uint32_t)p.getImm() << 12u;
-    regs.at(p.getDest()) = pc + offset;
-    return;
-  }
 
   // ArithRegReg & ArithRegImm
   if (bool isArithRegReg =
@@ -64,15 +48,15 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     if (isArithRegReg) {
       auto &p = spc<inst::ArithRegReg>(inst);
       destNumber = p.getDest();
-      rs1 = regs.at(p.getSrc1());
-      rs2 = regs.at(p.getSrc2());
+      rs1 = regs[p.getSrc1()];
+      rs2 = regs[p.getSrc2()];
     } else {
       auto &p = spc<inst::ArithRegImm>(inst);
       destNumber = p.getDest();
-      rs1 = regs.at(p.getSrc());
+      rs1 = regs[p.getSrc()];
       rs2 = p.getImm();
     }
-    auto &dest = regs.at(destNumber);
+    auto &dest = regs[destNumber];
 
     switch (op) {
     case Op::ADD:
@@ -122,7 +106,7 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
   // MemAccess
   if (Op::LB <= op && op <= Op::SW) {
     auto &p = spc<inst::MemAccess>(inst);
-    std::size_t vAddr = regs.at(p.getBase()) + p.getOffset();
+    std::size_t vAddr = regs[p.getBase()] + p.getOffset();
     if (keepDebugInfo && (isIn(invalidAddress, vAddr) || vAddr == 0)) {
       // Accessing 0x0 is always invalid since an instruction is stored there.
       // Perform this check since many student use 0x0 as the actual value of
@@ -139,58 +123,39 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     assert(storage.data() <= addr && addr < storage.data() + storage.size());
     switch (op) {
     case Op::SB:
-      *(std::uint8_t *)addr = regs.at(p.getReg());
+      *(std::uint8_t *)addr = regs[p.getReg()];
       return;
     case Op::SH:
-      *(std::uint16_t *)addr = regs.at(p.getReg());
+      *(std::uint16_t *)addr = regs[p.getReg()];
       return;
     case Op::SW:
-      *(std::uint32_t *)addr = regs.at(p.getReg());
+      *(std::uint32_t *)addr = regs[p.getReg()];
       return;
     case Op::LB:
-      regs.at(p.getReg()) = *(std::int8_t *)addr;
+      regs[p.getReg()] = *(std::int8_t *)addr;
       return;
     case Op::LH:
-      regs.at(p.getReg()) = *(std::int16_t *)addr;
+      regs[p.getReg()] = *(std::int16_t *)addr;
       return;
     case Op::LW:
-      regs.at(p.getReg()) = *(std::int32_t *)addr;
+      regs[p.getReg()] = *(std::int32_t *)addr;
       return;
     case Op::LBU:
-      (std::uint32_t &)regs.at(p.getReg()) = *(std::uint8_t *)addr;
+      (std::uint32_t &)regs[p.getReg()] = *(std::uint8_t *)addr;
       return;
     case Op::LHU:
-      (std::uint32_t &)regs.at(p.getReg()) = *(std::uint16_t *)addr;
+      (std::uint32_t &)regs[p.getReg()] = *(std::uint16_t *)addr;
       return;
     default:
       assert(false);
     }
   }
 
-  if (op == Op::JAL) {
-    ++instCnt.simple;
-    auto &p = spc<inst::JumpLink>(inst);
-    auto offset = p.getOffset() * 2;
-    regs.at(p.getDest()) = pc + 4;
-    pc += offset - 4;
-    return;
-  }
-
-  if (op == Op::JALR) {
-    ++instCnt.simple;
-    auto &p = spc<inst::JumpLinkReg>(inst);
-    regs.at(p.getDest()) = pc + 4;
-    auto addr = regs.at(p.getBase()) + p.getOffset();
-    addr &= ~1u;
-    pc = addr - 4;
-    return;
-  }
-
   if (Op::BEQ <= op && op <= Op::BGEU) {
     ++instCnt.br;
     auto &p = spc<inst::Branch>(inst);
-    std::int32_t rs1 = regs.at(p.getSrc1());
-    std::int32_t rs2 = regs.at(p.getSrc2());
+    std::int32_t rs1 = regs[p.getSrc1()];
+    std::int32_t rs2 = regs[p.getSrc2()];
     bool shouldJump;
     switch (inst->getOp()) {
     case Op::BEQ:
@@ -227,9 +192,9 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
 
     auto &p = spc<inst::MArith>(inst);
     auto destNumber = p.getDest();
-    auto &dest = regs.at(destNumber);
-    std::uint32_t rs1 = regs.at(p.getSrc1());
-    std::uint32_t rs2 = regs.at(p.getSrc2());
+    auto &dest = regs[destNumber];
+    std::uint32_t rs1 = regs[p.getSrc1()];
+    std::uint32_t rs2 = regs[p.getSrc2()];
     switch (op) {
     case Op::MUL:
       dest = (std::int32_t)rs1 * (std::int32_t)rs2;
@@ -266,6 +231,45 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
       assert(false);
     }
     return;
+  }
+
+  switch (op) {
+  case inst::Instruction::LUI: {
+    ++instCnt.simple;
+    auto &p = spc<inst::ImmConstruction>(inst);
+    regs[p.getDest()] = p.getImm() << 12u;
+    return;
+  }
+
+  case inst::ImmConstruction::AUIPC: {
+    ++instCnt.simple;
+    auto &p = spc<inst::ImmConstruction>(inst);
+    std::int32_t offset = (std::uint32_t)p.getImm() << 12u;
+    regs[p.getDest()] = pc + offset;
+    return;
+  }
+
+  case Op::JAL: {
+    ++instCnt.simple;
+    auto &p = spc<inst::JumpLink>(inst);
+    auto offset = p.getOffset() * 2;
+    regs[p.getDest()] = pc + 4;
+    pc += offset - 4;
+    return;
+  }
+
+  case Op::JALR: {
+    ++instCnt.simple;
+    auto &p = spc<inst::JumpLinkReg>(inst);
+    regs[p.getDest()] = pc + 4;
+    auto addr = regs[p.getBase()] + p.getOffset();
+    addr &= ~1u;
+    pc = addr - 4;
+    return;
+  }
+
+  default:
+    assert(false);
   }
 
   assert(false);

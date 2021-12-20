@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+import time
 
 compilers = {
     'gcc': 'riscv32-unknown-linux-gnu-gcc -S -fno-section-anchors -O%d ' +
@@ -49,17 +50,23 @@ os.system('cp ../build/src/ravel ./')
 
 # test
 print("%d test cases." % len(test_cases))
+total_time_used = 0
 failed_test_cases = []
 for test_case in test_cases:
     print(test_case + ': ', end='\t', flush=True)
     execute('cp %s.c ./test.c' % test_case)
     execute('cp %s.in ./test.in' % test_case)
     execute('cp %s.ans ./test.ans' % test_case)
+    execute('touch builtin.s')
     for compiler, compiler_cmd in compilers.items():
         for opt_level in [0, 1, 2]:
             execute(compiler_cmd % opt_level)
             identifier = "%s-O%d" % (compiler, opt_level)
+            start = time.time()
             ravel_res = execute(ravel_cmd)
+            end = time.time()
+            time_used = end - start
+            total_time_used += time_used
             if ravel_res.returncode:
                 print(color_red + identifier + '(RE)' + color_none,
                       end='\t', flush=True)
@@ -77,13 +84,14 @@ for test_case in test_cases:
                 for line in lines:
                     if not line.startswith('time: '):
                         continue
-                    time = int(line[6:])
+                    cycles = int(line[6:])
                     break
-            print(color_green + identifier + '(' + f'{time:,}' + ')'
+            print(color_green + identifier + '(' + f'{cycles:,}' + ')'
                   + color_none, end='\t', flush=True)
     print('')
 
 execute('rm ravel test.ans test.c test.in test.out test.s ravel.out')
+print('total time used = %d s' % total_time_used)
 if len(failed_test_cases) == 0:
     print('Passed all test cases')
     exit(0)
