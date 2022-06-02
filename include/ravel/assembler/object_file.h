@@ -8,8 +8,8 @@
 #include <utility>
 #include <vector>
 
-#include "container_utils.h"
-#include "instructions.h"
+#include "ravel/container_utils.h"
+#include "ravel/instructions.h"
 
 namespace ravel {
 

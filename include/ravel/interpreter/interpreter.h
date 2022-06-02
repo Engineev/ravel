@@ -7,8 +7,8 @@
 #include <cstdio>
 #include <unordered_set>
 
-#include "interpreter/cache.h"
-#include "linker/interpretable.h"
+#include "cache.h"
+#include "ravel/linker/interpretable.h"
 
 namespace ravel {
 

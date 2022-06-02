@@ -1,4 +1,4 @@
-#include "linker.h"
+#include "ravel/linker/linker.h"
 
 #include <algorithm>
 #include <cassert>
@@ -9,10 +9,10 @@
 #include <utility>
 #include <vector>
 
-#include "assembler/assembler.h"
-#include "assembler/parser.h"
-#include "container_utils.h"
-#include "error.h"
+#include "ravel/assembler/assembler.h"
+#include "ravel/assembler/parser.h"
+#include "ravel/container_utils.h"
+#include "ravel/error.h"
 
 namespace ravel {
 namespace {

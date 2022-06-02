@@ -1,4 +1,4 @@
-#include "interpreter.h"
+#include "ravel/interpreter/interpreter.h"
 
 #include <cassert>
 #include <functional>
@@ -8,9 +8,9 @@
 #include <queue>
 #include <stack>
 
-#include "assembler/parser.h"
-#include "error.h"
-#include "interpreter/libc_sim.h"
+#include "ravel/assembler/parser.h"
+#include "ravel/error.h"
+#include "ravel/interpreter/libc_sim.h"
 
 namespace ravel {
 namespace {

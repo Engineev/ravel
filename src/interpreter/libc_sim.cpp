@@ -1,4 +1,4 @@
-#include "libc_sim.h"
+#include "ravel/interpreter/libc_sim.h"
 
 #include <cassert>
 #include <cctype>
@@ -7,8 +7,8 @@
 #include <string>
 #include <utility>
 
-#include "container_utils.h"
-#include "error.h"
+#include "ravel/container_utils.h"
+#include "ravel/error.h"
 
 // IO
 namespace ravel::libc {

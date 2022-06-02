@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include "instructions.h"
+#include "ravel/instructions.h"
 
 // utilities
 namespace ravel {

@@ -1,6 +1,6 @@
-#include "cache.h"
+#include "ravel/interpreter/cache.h"
 
-#include "error.h"
+#include "ravel/error.h"
 
 namespace ravel {
 

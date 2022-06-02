@@ -5,9 +5,9 @@
 #include <utility>
 #include <vector>
 
-#include "assembler/assembler.h"
-#include "interpreter/interpreter.h"
-#include "linker/linker.h"
+#include "ravel/assembler/assembler.h"
+#include "ravel/interpreter/interpreter.h"
+#include "ravel/linker/linker.h"
 
 namespace ravel {
 

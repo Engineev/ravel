@@ -1,4 +1,4 @@
-#include "preprocessor.h"
+#include "ravel/assembler/preprocessor.h"
 
 #include <cassert>
 #include <random>
@@ -7,9 +7,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "container_utils.h"
-#include "error.h"
-#include "parser.h"
+#include "ravel/assembler/parser.h"
+#include "ravel/container_utils.h"
+#include "ravel/error.h"
 
 namespace ravel {
 namespace {

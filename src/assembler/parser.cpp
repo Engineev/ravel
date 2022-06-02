@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "ravel/assembler/parser.h"
 
 #include <algorithm>
 #include <cctype>
@@ -6,8 +6,8 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "container_utils.h"
-#include "error.h"
+#include "ravel/container_utils.h"
+#include "ravel/error.h"
 
 namespace ravel {
 

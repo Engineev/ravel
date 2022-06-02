@@ -3,9 +3,9 @@
 #include <iostream>
 #include <unordered_map>
 
-#include "assembler/parser.h"
-#include "container_utils.h"
-#include "simulator.h"
+#include "ravel/assembler/parser.h"
+#include "ravel/container_utils.h"
+#include "ravel/simulator.h"
 
 namespace ravel {
 

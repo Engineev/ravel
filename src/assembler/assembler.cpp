@@ -1,4 +1,4 @@
-#include "assembler.h"
+#include "ravel/assembler/assembler.h"
 
 #include <cassert>
 #include <cctype>
@@ -13,12 +13,12 @@
 #include <utility>
 #include <vector>
 
-#include "container_utils.h"
-#include "error.h"
-#include "instructions.h"
-#include "object_file.h"
-#include "parser.h"
-#include "preprocessor.h"
+#include "ravel/assembler/object_file.h"
+#include "ravel/assembler/parser.h"
+#include "ravel/assembler/preprocessor.h"
+#include "ravel/container_utils.h"
+#include "ravel/error.h"
+#include "ravel/instructions.h"
 
 // Here, we describe the implementation of the assembler. For details about
 // the resulted [ObjectFile], see object_file.h.
@@ -57,6 +57,7 @@ namespace {
 
 class AssemblerPass1 {
 public:
+  // If `forceSingleFile` is true, then no external symbols are allowed.
   explicit AssemblerPass1(std::vector<std::string> src) : src(std::move(src)) {}
 
   std::tuple<std::vector<std::byte> /* storage */,
@@ -243,7 +244,7 @@ private:
   }
 
 private:
-  std::vector<std::string> src;
+  const std::vector<std::string> src;
   Section curSection = Section::ERROR;
 
   std::vector<std::byte> text, data, rodata, bss;

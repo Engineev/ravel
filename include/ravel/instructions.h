@@ -6,7 +6,7 @@
 #include <memory>
 #include <string>
 
-#include "container_utils.h"
+#include "ravel/container_utils.h"
 
 namespace ravel::inst {
 

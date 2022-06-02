@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "object_file.h"
+#include "ravel/assembler/object_file.h"
 
 namespace ravel {
 
