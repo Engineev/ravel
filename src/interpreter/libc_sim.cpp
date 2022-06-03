@@ -31,7 +31,7 @@ std::size_t countFormatSigns(const std::string &fmtStr) {
 // successful) or -1 if an error occurred
 std::pair<std::string, int> sprintfImpl(const std::string &fmtStr,
                                         const std::vector<std::uint32_t> &args,
-                                        const std::vector<std::byte> &storage) {
+                                        const std::byte *storage) {
   std::string formattedStr;
   std::size_t curArgIdx = 0;
   for (std::size_t i = 0; i < fmtStr.size(); ++i) {
@@ -53,7 +53,7 @@ std::pair<std::string, int> sprintfImpl(const std::string &fmtStr,
     }
     if (ch == 's') {
       formattedStr +=
-          std::string((const char *)(storage.data() + args.at(curArgIdx++)));
+          std::string((const char *)(storage + args.at(curArgIdx++)));
       continue;
     }
     throw RuntimeError("Invalid format string: " + fmtStr);
@@ -63,16 +63,16 @@ std::pair<std::string, int> sprintfImpl(const std::string &fmtStr,
 }
 } // namespace
 
-void puts(std::array<std::uint32_t, 32> &regs, std::vector<std::byte> &storage,
-          FILE *fp) {
+void puts(std::array<std::uint32_t, 32> &regs, std::byte *storage,
+          std::byte *storageEnd, FILE *fp) {
   std::size_t pos = regs[10];
-  regs[10] = std::fputs((const char *)(storage.data() + pos), fp);
+  regs[10] = std::fputs((const char *)(storage + pos), fp);
   std::fputc('\n', fp);
 }
 
-void scanf(std::array<std::uint32_t, 32> &regs, std::vector<std::byte> &storage,
-           FILE *fp) {
-  auto fmtStr = (const char *)(storage.data() + regs[10]);
+void scanf(std::array<std::uint32_t, 32> &regs, std::byte *storage,
+           std::byte *storageEnd, FILE *fp) {
+  auto fmtStr = (const char *)(storage + regs[10]);
   std::size_t assigned = 0;
   bool succeeded = true;
   for (auto iter = fmtStr; *iter != '\0' && succeeded; ++iter) {
@@ -88,14 +88,14 @@ void scanf(std::array<std::uint32_t, 32> &regs, std::vector<std::byte> &storage,
     if (fmtCh == '%') {
       ++iter;
       fmtCh = *iter;
-      if (regs[11 + assigned] >= storage.size())
+      if (regs[11 + assigned] >= storageEnd - storage)
         throw InvalidAddress(regs[11 + assigned]);
       if (fmtCh == 'd') {
-        succeeded = std::fscanf(fp, "%d",
-                                (int *)(storage.data() + regs[11 + assigned]));
+        succeeded =
+            std::fscanf(fp, "%d", (int *)(storage + regs[11 + assigned]));
       } else if (fmtCh == 's') {
-        succeeded = std::fscanf(fp, "%s",
-                                (char *)(storage.data() + regs[11 + assigned]));
+        succeeded =
+            std::fscanf(fp, "%s", (char *)(storage + regs[11 + assigned]));
       } else {
         assert(false);
       }
@@ -111,10 +111,9 @@ void scanf(std::array<std::uint32_t, 32> &regs, std::vector<std::byte> &storage,
   regs[10] = assigned;
 }
 
-void sscanf(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage) {
-  auto buffer = (const char *)(storage.data() + regs[10]);
-  auto fmtStr = (const char *)(storage.data() + regs[11]);
+void sscanf(std::array<std::uint32_t, 32> &regs, std::byte *storage) {
+  auto buffer = (const char *)(storage + regs[10]);
+  auto fmtStr = (const char *)(storage + regs[11]);
   std::size_t assigned = 0;
   bool succeeded = true;
   auto bufferIter = buffer;
@@ -134,8 +133,8 @@ void sscanf(std::array<std::uint32_t, 32> &regs,
       ++iter;
       fmtCh = *iter;
       assert(fmtCh == 'd');
-      succeeded = std::sscanf(bufferIter, "%d",
-                              (int *)(storage.data() + regs[12 + assigned]));
+      succeeded =
+          std::sscanf(bufferIter, "%d", (int *)(storage + regs[12 + assigned]));
       assigned += succeeded;
       continue;
     }
@@ -150,9 +149,9 @@ void sscanf(std::array<std::uint32_t, 32> &regs,
   regs[10] = assigned;
 }
 
-void printf(std::array<std::uint32_t, 32> &regs,
-            const std::vector<std::byte> &storage, FILE *fp) {
-  auto fmtStr = std::string((const char *)(storage.data() + regs[10]));
+void printf(std::array<std::uint32_t, 32> &regs, const std::byte *storage,
+            std::byte *storageEnd, FILE *fp) {
+  auto fmtStr = std::string((const char *)(storage + regs[10]));
   std::size_t nFormatSigns = countFormatSigns(fmtStr);
   std::vector<std::uint32_t> arguments(regs.begin() + 11,
                                        regs.begin() + 11 + nFormatSigns);
@@ -162,17 +161,15 @@ void printf(std::array<std::uint32_t, 32> &regs,
   regs[10] = nSuccChars;
 }
 
-void sprintf(std::array<std::uint32_t, 32> &regs,
-             std::vector<std::byte> &storage) {
+void sprintf(std::array<std::uint32_t, 32> &regs, std::byte *storage) {
   std::size_t bufferVAddr = regs[10];
-  auto fmtStr = std::string((const char *)(storage.data() + regs[11]));
+  auto fmtStr = std::string((const char *)(storage + regs[11]));
   std::size_t nFormatSigns = countFormatSigns(fmtStr);
   std::vector<std::uint32_t> arguments(regs.begin() + 12,
                                        regs.begin() + 12 + nFormatSigns);
   assert(arguments.size() <= 6);
   auto [formattedStr, nSuccChars] = sprintfImpl(fmtStr, arguments, storage);
-  std::sprintf((char *)(storage.data() + bufferVAddr), "%s",
-               formattedStr.c_str());
+  std::sprintf((char *)(storage + bufferVAddr), "%s", formattedStr.c_str());
   regs[10] = nSuccChars;
 }
 
@@ -190,8 +187,8 @@ namespace {
 constexpr std::size_t MemSizeFactor = 512;
 } // namespace
 
-void malloc(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage, std::size_t &heapPtr,
+void malloc(std::array<std::uint32_t, 32> &regs, std::byte *storage,
+            std::byte *storageEnd, std::size_t &heapPtr,
             std::unordered_set<std::size_t> &malloced,
             std::unordered_set<std::size_t> &invalidAddress,
             std::size_t &instCnt, bool zeroInit) {
@@ -201,14 +198,13 @@ void malloc(std::array<std::uint32_t, 32> &regs,
   malloced.emplace(heapPtr);
   heapPtr += size;
   if (zeroInit) {
-    std::fill(storage.begin() + regs[10], storage.begin() + heapPtr,
-              std::byte(0));
+    std::fill(storage + regs[10], storage + heapPtr, std::byte(0));
   }
   invalidAddress.emplace(heapPtr++);
   if (heapPtr % 2) {
     invalidAddress.emplace(heapPtr++);
   }
-  if (heapPtr >= storage.size()) {
+  if (heapPtr >= storageEnd - storage) {
     throw RuntimeError("Running out of memory");
   }
 }
@@ -220,53 +216,51 @@ void free(const std::array<std::uint32_t, 32> &regs,
   malloced.erase(malloced.find(addr));
 }
 
-void memcpy(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage, std::size_t &instCnt) {
+void memcpy(std::array<std::uint32_t, 32> &regs, std::byte *storage,
+            std::byte *storageEnd, std::size_t &instCnt) {
   std::size_t dest = regs[10];
   std::size_t src = regs[11];
   std::size_t cnt = regs[12];
   instCnt += cnt / MemSizeFactor;
-  assert(src + cnt < storage.size() && dest + cnt < storage.size());
-  std::memcpy(storage.data() + dest, storage.data() + src, cnt);
+  assert(src + cnt < storageEnd - storage && dest + cnt < storageEnd - storage);
+  std::memcpy(storage + dest, storage + src, cnt);
 }
 
-void strlen(std::array<std::uint32_t, 32> &regs,
-            const std::vector<std::byte> &storage) {
+void strlen(std::array<std::uint32_t, 32> &regs, const std::byte *storage) {
   std::size_t strPos = regs[10];
-  regs[10] = std::strlen((char *)storage.data() + strPos);
+  regs[10] = std::strlen((char *)storage + strPos);
 }
 
-void strcpy(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage, std::size_t &instCnt) {
+void strcpy(std::array<std::uint32_t, 32> &regs, std::byte *storage,
+            std::byte *storageEnd, std::size_t &instCnt) {
   std::size_t dest = regs[10], src = regs[11];
-  std::size_t size = std::strlen((char *)storage.data() + src);
+  std::size_t size = std::strlen((char *)storage + src);
   instCnt += size / MemSizeFactor;
-  std::strcpy((char *)storage.data() + dest, (char *)storage.data() + src);
+  std::strcpy((char *)storage + dest, (char *)storage + src);
 }
 
-void strcat(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage, std::size_t &instCnt) {
-  auto dest = (char *)(storage.data() + regs[10]);
-  auto src = (const char *)(storage.data() + regs[11]);
+void strcat(std::array<std::uint32_t, 32> &regs, std::byte *storage,
+            std::byte *storageEnd, std::size_t &instCnt) {
+  auto dest = (char *)(storage + regs[10]);
+  auto src = (const char *)(storage + regs[11]);
   std::size_t size = std::strlen(src);
   instCnt += size / MemSizeFactor;
   std::strcat(dest, src);
 }
 
-void strcmp(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage) {
-  auto lhs = (const char *)(storage.data() + regs[10]);
-  auto rhs = (const char *)(storage.data() + regs[11]);
+void strcmp(std::array<std::uint32_t, 32> &regs, std::byte *storage) {
+  auto lhs = (const char *)(storage + regs[10]);
+  auto rhs = (const char *)(storage + regs[11]);
   regs[10] = std::strcmp(lhs, rhs);
 }
 
-void memset(std::array<std::uint32_t, 32> &regs,
-            std::vector<std::byte> &storage, std::size_t &instCnt) {
+void memset(std::array<std::uint32_t, 32> &regs, std::byte *storage,
+            std::byte *storageEnd, std::size_t &instCnt) {
   std::size_t dest = regs[10];
   int ch = regs[11];
   std::size_t cnt = regs[12];
   instCnt += cnt / MemSizeFactor;
-  std::memset(storage.data() + dest, ch, cnt);
+  std::memset(storage + dest, ch, cnt);
 }
 
 } // namespace ravel::libc

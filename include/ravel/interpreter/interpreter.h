@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <optional>
 #include <unordered_set>
 
 #include "cache.h"
@@ -38,10 +39,19 @@ struct InstCnt {
 
 class Interpreter {
 public:
-  Interpreter(const Interpretable &interpretable, FILE *in, FILE *out,
-              InstWeight instWeight)
-      : interpretable(interpretable), cache(storage), in(in), out(out),
-        instWeight(instWeight) {}
+  Interpreter(const Interpretable &interpretable, std::uint32_t *externalRegs,
+              std::byte *externalStorageBegin, std::byte *externalStorageEnd,
+              FILE *in, FILE *out, InstWeight instWeight)
+      : interpretable(interpretable), externalRegs(externalRegs),
+        cache(externalStorageBegin, externalStorageEnd), in(in), out(out),
+        instWeight(instWeight) {
+    std::copy(externalRegs, externalRegs + 32, regs.begin());
+  }
+
+  ~Interpreter() {
+    if (externalRegs)
+      std::copy(regs.begin(), regs.end(), externalRegs.value());
+  }
 
   void interpret();
 
@@ -77,9 +87,9 @@ private:
 private:
   const Interpretable &interpretable;
 
+  std::optional<std::uint32_t *> externalRegs;
   std::array<std::uint32_t, 32> regs = {0};
   std::int32_t pc = 0;
-  std::vector<std::byte> storage;
   Cache cache;
   std::size_t heapPtr = 0;
   std::unordered_set<std::size_t> malloced;

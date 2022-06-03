@@ -1,10 +1,12 @@
 #include <cassert>
 #include <cstddef>
+#include <fstream>
 #include <iostream>
 #include <unordered_map>
 
 #include "ravel/assembler/parser.h"
 #include "ravel/container_utils.h"
+#include "ravel/error.h"
 #include "ravel/simulator.h"
 
 namespace ravel {
@@ -22,7 +24,7 @@ public:
   Config parse() {
     if (std::find(args.begin(), args.end(), "--oj-mode") != args.end()) {
       config.cacheEnabled = false;
-      config.sources = {"test.s", "builtin.s"};
+      config.sources = {readSource("test.s"), readSource("builtin.s")};
       config.inputFile = "test.in";
       config.outputFile = "test.out";
     }
@@ -33,7 +35,7 @@ public:
         continue;
 
       if (arg.front() != '-') { // source code
-        config.sources.emplace_back(arg);
+        config.sources.emplace_back(readSource(arg));
         continue;
       }
       if (arg == "--enable-cache") {
@@ -78,6 +80,16 @@ public:
   }
 
 private:
+  std::string readSource(const std::string &filename) {
+    std::ifstream t(filename);
+    if (!t) {
+      throw Exception("Can not find file " + filename);
+    }
+    std::string src((std::istreambuf_iterator<char>(t)),
+                    std::istreambuf_iterator<char>());
+    return src;
+  }
+
   void handleInstWeight(const std::string &arg) {
     assert(starts_with(arg, "-w"));
     auto tokens = split(arg.substr(2), "=");

@@ -15,7 +15,7 @@ RISC-V assembly. This simulator is used to test the correctness of the
 implementation and measure the quality of the optimization.  
 
 ## Getting started
-The only prerequisites are CMake (>= 3.10) and a cpp-17 supporting compiler.
+The only prerequisites are CMake (>= 3.13) and a cpp-17 supporting compiler.
 You can install the simulator with the following commands.
 ```shell script
 git clone https://github.com/Engineev/ravel.git
@@ -45,6 +45,16 @@ If you'd like to see the instructions being executed, you may pass in command
 line option `--print-instructions`, but note that this will significantly slow down the 
 simulation. Also, if `--keep-debug-info` is passed in, **ravel** will perform more checks on 
 memory accesses and will print additional information like the call stack when an error occurred.
+
+## Ravel as a static library
+It's possible to use **ravel** as a static library. In fact, `make insatll` will also install the library 
+`libravel-sim.a` into `${CMAKE_INSTALL_PREFIX}/lib` and the corresponding headers into 
+`${CMAKE_INSTALL_PREFIX}/include`. See [./test/test-ravel-sim.cpp](./test/test-ravel-sim.cpp) for a minimal example.
+If you installed **ravel** into `/usr/local/opt`, then you can build the test with
+```shell script
+g++ -std=c++17 -I/usr/local/opt/include -L/usr/local/lib/ -lravel-sim ./test/test-ravel-sim.cpp
+```
+
 
 ## Support
 

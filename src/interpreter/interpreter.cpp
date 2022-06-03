@@ -109,18 +109,15 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
     std::size_t vAddr = regs[p.getBase()] + p.getOffset();
     if (keepDebugInfo && (isIn(invalidAddress, vAddr) || vAddr == 0)) {
       // Accessing 0x0 is always invalid since an instruction is stored there.
-      // Perform this check since many student use 0x0 as the actual value of
+      // Perform this check since many students use 0x0 as the actual value of
       // null.
       throw InvalidAddress(vAddr);
     }
 
-    bool hit = cache.get(vAddr).second;
-    if (hit && Op::LB <= op && op <= Op::LW)
-      ++instCnt.cache;
-    else
-      ++instCnt.mem;
-    std::byte *addr = storage.data() + vAddr;
-    assert(storage.data() <= addr && addr < storage.data() + storage.size());
+    // TODO
+    std::tie(instCnt.cache, instCnt.mem) = cache.getHitMiss();
+    std::byte *addr = cache.getMemory().first + vAddr;
+    assert(addr < cache.getMemory().second);
     switch (op) {
     case Op::SB:
       *(std::uint8_t *)addr = regs[p.getReg()];
@@ -280,14 +277,12 @@ std::uint32_t Interpreter::getReturnCode() const {
 }
 
 void Interpreter::load() {
-  storage.insert(storage.end(), interpretable.getStorage().begin(),
-                 interpretable.getStorage().end());
-  heapPtr = storage.size();
-  std::size_t MaxStorageSize = 512 * 1024 * 1024;
-  assert(storage.size() < 3 * MaxStorageSize / 4);
-  storage.resize(MaxStorageSize);
+  std::copy(interpretable.getStorage().begin(),
+            interpretable.getStorage().end(), cache.getMemory().first);
+  heapPtr = interpretable.getStorage().size();
+  assert(heapPtr < cache.storageSize() / 2);
   pc = Interpretable::Start;
-  regs.at(regName2regNumber("sp")) = MaxStorageSize;
+  regs.at(regName2regNumber("sp")) = cache.storageSize();
 }
 
 namespace {
@@ -344,7 +339,7 @@ void Interpreter::interpret() {
 
   try {
     while (pc != Interpretable::End) {
-      if (!(0 <= pc && (std::uint32_t)pc < storage.size())) {
+      if (!(0 <= pc && (std::uint32_t)pc < cache.storageSize())) {
         throw InvalidAddress(pc);
       }
       ++numInsts;
@@ -373,7 +368,7 @@ void Interpreter::interpret() {
         continue;
       }
 
-      auto instIdx = *(std::uint32_t *)(storage.data() + pc);
+      auto instIdx = *(std::uint32_t *)(cache.getMemory().first + pc);
       // We no longer take the mem/cache access in the IF stage into
       // consideration
       const auto &inst = interpretable.getInsts().at(instIdx);
@@ -457,50 +452,54 @@ void Interpreter::simulateLibCFunc(libc::Func funcN) {
 
   switch (funcN) {
   case libc::PUTS:
-    libc::puts(regs, storage, out);
+    libc::puts(regs, cache.getMemory().first, cache.getMemory().second, out);
     return;
   case libc::SCANF:
-    libc::scanf(regs, storage, in);
+    libc::scanf(regs, cache.getMemory().first, cache.getMemory().second, in);
     return;
   case libc::SSCANF:
-    libc::sscanf(regs, storage);
+    libc::sscanf(regs, cache.getMemory().first);
   case libc::PRINTF:
-    libc::printf(regs, storage, out);
+    libc::printf(regs, cache.getMemory().first, cache.getMemory().second, out);
     return;
   case libc::SPRINTF:
-    libc::sprintf(regs, storage);
+    libc::sprintf(regs, cache.getMemory().first);
     return;
   case libc::PUTCHAR:
     libc::putchar(regs, out);
     return;
   case libc::MALLOC:
-    libc::malloc(regs, storage, heapPtr, malloced, invalidAddress,
-                 instCnt.libcMem);
+    libc::malloc(regs, cache.getMemory().first, cache.getMemory().second,
+                 heapPtr, malloced, invalidAddress, instCnt.libcMem);
     return;
   case libc::CALLOC:
-    libc::malloc(regs, storage, heapPtr, malloced, invalidAddress,
-                 instCnt.libcMem, true);
+    libc::malloc(regs, cache.getMemory().first, cache.getMemory().second,
+                 heapPtr, malloced, invalidAddress, instCnt.libcMem, true);
     return;
   case libc::FREE:
     libc::free(regs, malloced);
     return;
   case libc::MEMCPY:
-    libc::memcpy(regs, storage, instCnt.libcMem);
+    libc::memcpy(regs, cache.getMemory().first, cache.getMemory().second,
+                 instCnt.libcMem);
     return;
   case libc::STRLEN:
-    libc::strlen(regs, storage);
+    libc::strlen(regs, cache.getMemory().first);
     return;
   case libc::STRCPY:
-    libc::strcpy(regs, storage, instCnt.libcMem);
+    libc::strcpy(regs, cache.getMemory().first, cache.getMemory().second,
+                 instCnt.libcMem);
     return;
   case libc::STRCAT:
-    libc::strcat(regs, storage, instCnt.libcMem);
+    libc::strcat(regs, cache.getMemory().first, cache.getMemory().second,
+                 instCnt.libcMem);
     return;
   case libc::STRCMP:
-    libc::strcmp(regs, storage);
+    libc::strcmp(regs, cache.getMemory().first);
     return;
   case libc::MEMSET:
-    libc::memset(regs, storage, instCnt.libcMem);
+    libc::memset(regs, cache.getMemory().first, cache.getMemory().second,
+                 instCnt.libcMem);
     return;
   default:
     assert(false);

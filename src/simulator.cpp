@@ -12,16 +12,8 @@ Interpretable Simulator::buildInterpretable() {
   auto startTp = std::chrono::high_resolution_clock::now();
 
   std::vector<ObjectFile> objs;
-  for (auto &file : config.sources) {
-    std::ifstream t(file);
-    if (!t) {
-      throw Exception("Can not find file " + file);
-    }
-    std::string src((std::istreambuf_iterator<char>(t)),
-                    std::istreambuf_iterator<char>());
-    auto obj = assemble(src);
-    objs.emplace_back(std::move(obj));
-  }
+  for (auto &src : config.sources)
+    objs.emplace_back(assemble(src));
 
   auto buildEndTp = std::chrono::high_resolution_clock::now();
   auto time = std::chrono::duration_cast<std::chrono::milliseconds>(buildEndTp -
@@ -32,7 +24,7 @@ Interpretable Simulator::buildInterpretable() {
   return interp;
 }
 
-std::pair<FILE *, FILE *> Simulator::getIOFile() {
+std::pair<FILE *, FILE *> Simulator::getIOFile() const {
   auto in = config.inputFile.empty()
                 ? stdin
                 : std::fopen(config.inputFile.c_str(), "r");
@@ -61,7 +53,7 @@ void Simulator::printResult(const Interpreter &interpreter) const {
   std::cout << "# libcMem = " << iCnt.libcMem << std::endl;
 }
 
-void Simulator::simulate() {
+std::size_t Simulator::simulate() {
   auto interp = buildInterpretable();
   auto [in, out] = getIOFile();
   std::shared_ptr<void> close(nullptr, [in = in, out = out](void *) {
@@ -72,7 +64,17 @@ void Simulator::simulate() {
   });
 
   auto starTp = std::chrono::high_resolution_clock::now();
-  Interpreter interpreter{interp, in, out, config.instWeight};
+
+  auto regsPtr =
+      regs.index() == 0 ? std::get<0>(regs).data() : std::get<1>(regs);
+  auto storagePtr = storage.index() == 0
+                        ? std::make_pair(&std::get<0>(storage).front(),
+                                         &std::get<0>(storage).back() + 1)
+                        : std::get<1>(storage);
+
+  Interpreter interpreter{interp, regsPtr, storagePtr.first, storagePtr.second,
+                          in,     out,     config.instWeight};
+
   interpreter.setTimeout(config.timeout);
   interpreter.setKeepDebugInfo(config.keepDebugInfo);
   if (!config.cacheEnabled)
@@ -87,5 +89,40 @@ void Simulator::simulate() {
       std::chrono::duration_cast<std::chrono::milliseconds>(endTp - starTp)
           .count();
   std::cerr << "\nInterpretation finished in " << time << " ms\n";
+
+  return interpreter.getTimeConsumed();
 }
+
+Simulator::Simulator(Config config_) : config(std::move(config_)) {
+  if (config.externalRegs) {
+    regs = config.externalRegs;
+  } else {
+    regs = std::array<std::uint32_t, 32>();
+  }
+
+  if (config.externalStorageBegin) {
+    assert(config.externalStorageBegin < config.externalStorageEnd);
+    assert(config.externalStorageEnd - config.externalStorageBegin <
+           config.maxStorageSize);
+    storage =
+        std::make_pair(config.externalStorageBegin, config.externalStorageEnd);
+  } else {
+    storage = std::vector<std::byte>(config.maxStorageSize);
+  }
+}
+
+std::size_t simulate(const std::string &src, std::uint32_t *regs,
+                     std::byte *storageBegin, std::byte *storageEnd) {
+  Config config;
+  config.cacheEnabled = true;
+  config.sources.emplace_back(src);
+  config.externalRegs = regs;
+  config.externalStorageBegin = storageBegin;
+  config.externalStorageEnd = storageEnd;
+
+  Simulator simulator(config);
+  auto timeConsumed = simulator.simulate();
+  return timeConsumed;
+}
+
 } // namespace ravel

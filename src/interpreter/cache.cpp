@@ -4,13 +4,15 @@
 
 namespace ravel {
 
-std::pair<std::uint32_t /* val */, bool /* hit */>
-Cache::get(std::size_t addr) {
-  if (!(0 <= addr && addr + 3 < memory.size())) {
+std::uint32_t Cache::fetchWord(std::size_t addr) {
+  std::size_t memorySize = storageEnd - storageBegin;
+  if (addr + 3 > memorySize) {
     throw InvalidAddress(addr);
   }
-  if (disabled)
-    return {*(std::uint32_t *)(memory.data() + addr), false};
+  if (disabled) {
+    miss++;
+    return *(std::uint32_t *)(storageBegin + addr);
+  }
   for (auto &line : lines) {
     if (!line.valid)
       continue;
@@ -18,14 +20,16 @@ Cache::get(std::size_t addr) {
       continue;
     // hit
     line.lastUsed = cycles;
-    return {*(std::uint32_t *)(memory.data() + addr), true};
+    hit++;
+    return *(std::uint32_t *)(storageBegin + addr);
   }
   // miss
   auto &line = getEmptyLine();
   line.lastUsed = cycles;
   line.valid = true;
   line.addr = addr & Mask;
-  return {*(std::uint32_t *)(memory.data() + addr), false};
+  miss++;
+  return *(std::uint32_t *)(storageBegin + addr);
 }
 
 Cache::Line &Cache::getEmptyLine() {
