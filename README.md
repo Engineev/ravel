@@ -15,7 +15,7 @@ RISC-V assembly. This simulator is used to test the correctness of the
 implementation and measure the quality of the optimization.  
 
 ## Getting started
-The only prerequisites are CMake (>= 3.10) and a cpp-17 supporting compiler.
+The only prerequisites are CMake (>= 3.12) and a cpp-17 supporting compiler.
 You can install the simulator with the following commands.
 ```shell script
 git clone https://github.com/Engineev/ravel.git

@@ -43,7 +43,10 @@ if (UNIX)
   target_compile_options(ravel-sim PRIVATE -O2 -Wall)
 endif ()
 include(GNUInstallDirs)
-install(TARGETS ravel-sim LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS ravel-sim
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/ravel" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 
