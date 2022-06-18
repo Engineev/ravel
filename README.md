@@ -52,7 +52,7 @@ It's possible to use **ravel** as a static library. In fact, `make insatll` will
 `${CMAKE_INSTALL_PREFIX}/include`. See [./test/test-ravel-sim.cpp](./test/test-ravel-sim.cpp) for a minimal example.
 If you installed **ravel** into `/usr/local/opt`, then you can build the test with
 ```shell script
-g++ -std=c++17 -I/usr/local/opt/include -L/usr/local/lib/ -lravel-sim ./test/test-ravel-sim.cpp
+g++ -std=c++17 ./test/test-ravel-sim.cpp -I/usr/local/opt/include -L/usr/local/opt/lib/ -lravel-sim
 ```
 
 
