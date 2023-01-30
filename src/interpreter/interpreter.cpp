@@ -114,10 +114,10 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
       throw InvalidAddress(vAddr);
     }
 
-    // TODO
-    std::tie(instCnt.cache, instCnt.mem) = cache.getHitMiss();
     std::byte *addr = cache.getMemory().first + vAddr;
     assert(addr < cache.getMemory().second);
+    cache.fetchWord(vAddr);
+    std::tie(instCnt.cache, instCnt.mem) = cache.getHitMiss();
     switch (op) {
     case Op::SB:
       *(std::uint8_t *)addr = regs[p.getReg()];
