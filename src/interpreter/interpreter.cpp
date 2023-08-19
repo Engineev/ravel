@@ -116,7 +116,30 @@ void Interpreter::simulate(const std::shared_ptr<inst::Instruction> &inst) {
 
     std::byte *addr = cache.getMemory().first + vAddr;
     assert(addr < cache.getMemory().second);
-    cache.fetchWord(vAddr);
+    // To avoid memory access error when accessing with byte or half-word, we
+    // need to change the address to a proper one.
+    // For example, we need to access a memory at one byte below the stack
+    // pointer, we cannot fetch a word from the address, since will cause a
+    // memory access error. Instead, we need to fetch a word from the address
+    // 4 bytes below the stack pointer, and then extract the byte we need.
+    std::size_t fetchFrom = vAddr;
+    switch (op) {
+    case Op::SB:
+    case Op::LB:
+    case Op::LBU:
+      fetchFrom &= ~0b11; // align to 4 bytes
+      break;
+    case Op::SH:
+    case Op::LH:
+    case Op::LHU:
+      if (vAddr % 4 == 3) {
+        fetchFrom -= 2;
+      } else {
+        fetchFrom &= ~0b11;
+      }
+      break;
+    }
+    cache.fetchWord(fetchFrom);
     std::tie(instCnt.cache, instCnt.mem) = cache.getHitMiss();
     switch (op) {
     case Op::SB:
