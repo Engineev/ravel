@@ -6,7 +6,7 @@ namespace ravel {
 
 std::uint32_t Cache::fetchWord(std::size_t addr) {
   std::size_t memorySize = storageEnd - storageBegin;
-  if (addr + 3 > memorySize) {
+  if (addr + 4 > memorySize) {
     throw InvalidAddress(addr);
   }
   if (disabled) {
