@@ -220,7 +220,8 @@ private:
       assert(tokens.size() == 2);
       auto curPos = storage.size();
       storage.resize(storage.size() + 4);
-      if (!std::isdigit(tokens.at(1).front())) { // .word label
+      if (!std::isdigit(tokens.at(1).front()) &&
+          tokens.at(1).front() != '-') { // .word label
         assert(curSection == Section::DATA);
         toBeStored.emplace_back(tokens.at(1), curPos);
         return;
